@@ -1,0 +1,17 @@
+d 'CELLGRAPH': command to create graphs based on collapsed data
+d
+d  Flexible command to create graphs based on collapsed data. 
+d  For example in a panel dataset on individual workers it could produce a graph of mean wages by year and gender.
+d  Data is first collapsed to cell level, where cells are defined by one or two categorical variables (byvar1 and byvar2)
+d  and cell means (or other statistics) of a third variabla ({it:varname}) are graphed.
+d
+d Requires: Stata version 14
+d
+d Distribution-Date: 20241025
+d
+d Authors: Johannes F. Schmieder, Boston University, USA
+d Support: email johannes@bu.edu
+f cellgraph.ado
+f cellgraph.sthlp
+f cellgraph.toc
+f cellgraph.pkg 

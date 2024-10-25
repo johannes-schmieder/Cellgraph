@@ -1,0 +1,5 @@
+v 3
+d Cellgraph command by Johannes F. Schmieder
+
+p cellgraph - Creates graphs similar to tables that are produced with tabstat. 
+p For example in a panel dataset on individual workers it could produce a graph of mean wages by year and gender.

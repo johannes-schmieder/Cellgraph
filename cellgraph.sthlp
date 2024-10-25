@@ -10,7 +10,7 @@ cellgraph - Creates graphs similar to tables that are produced with tabstat. For
 
 {title:Syntax}
 
-{p 8 15}
+{phang}
 {cmd:cellgraph} {it:varname} [{help if}] [{help in}] , {cmd:by(}{it:byvar1 byvar2}{cmd:)}
 	{break}
   [ {cmdab:c:olors}{cmd:(}{it:color1 color2 color3 ...}{cmd:)}
@@ -80,10 +80,10 @@ provide any twoway options to pass through to the call of the twoway command
 {title:Author}
 
 {p}
-Johannes F. Schmieder, Columbia University, USA
+Johannes F. Schmieder, Boston University, USA
 
 {p}
-Email: {browse "mailto:johannesschmieder@gmail.com":johannesschmieder@gmail.com}
+Email: {browse "mailto:johannes@bu.edu":johannes@bu.edu}
 
 Comments welcome!
 

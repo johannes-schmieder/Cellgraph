@@ -1,7 +1,6 @@
 // Author: Johannes F. Schmieder
 // Department of Economics, Boston University
 // cellgraph.ado
-// Version 2019.08.26
 
 // First Version: April 2008
 // Comments and suggestions welcome: johannes{at}bu.edu
@@ -62,6 +61,7 @@ program define cellgraph
 		Colors(str) ///
 		lpattern ///
 		lpatterns(str) /// 		
+		shaded_ci ///
 		Name(str) ///
 		Title(str) SUBTitle(passthru) YTITle(passthru)  ///
 		NOCI ADDNOTES NODATE NOTITLE NONOTES ///
@@ -334,8 +334,16 @@ program define cellgraph
 					local mlabel mlabel(obs`v') mlabcolor(black) mlabsize(vsmall) mlabposition(1)
 				}
 
-				local graphs 	`graphs'	(`graphcmd' `v'hi `by', lpattern("#") color("`col'") msymbol(none) )  ///
+				if "`shaded_ci'"=="" {
+				local graphs 	`graphs'	///
+					(`graphcmd' `v'hi `by', lpattern("#") color("`col'") msymbol(none) )  ///
 					(`graphcmd' `v'lo `by' , lpattern("#") color("`col'") msymbol(none) )
+				}
+				else {
+					local graphs 	`graphs'	///
+						(rarea `v'hi `v'lo `by', color("`col'") )  						
+				}
+
 				if "`lfit'"=="lfit" {
 					if `varcount'==1 & `sc'==1 local lfit_col maroon
 					else local lfit_col `col'
