@@ -61,7 +61,8 @@ program define cellgraph
 		Colors(str) ///
 		lpattern ///
 		lpatterns(str) /// 		
-		shaded_ci ///
+		cipattern(str) ///
+		ci_shade_coef(real 0.3) ///
 		Name(str) ///
 		Title(str) SUBTitle(passthru) YTITle(passthru)  ///
 		NOCI ADDNOTES NODATE NOTITLE NONOTES ///
@@ -105,6 +106,14 @@ program define cellgraph
 
 	local msymbols `msymbols' ///
 		square circle diamond triangle circle_hollow diamond_hollow triangle_hollow square_hollow
+
+	if "`cipattern'" != "" & !inlist("`cipattern'", "shaded", "lines") {
+		disp in red "Error: CIPattern must be either 'shaded', 'lines', or missing."
+		error 198
+	}
+
+
+
 
 	marksample touse
 
@@ -333,15 +342,16 @@ program define cellgraph
 				if "`mcounts'"!=""{
 					local mlabel mlabel(obs`v') mlabcolor(black) mlabsize(vsmall) mlabposition(1)
 				}
-
-				if "`shaded_ci'"=="" {
-				local graphs 	`graphs'	///
-					(`graphcmd' `v'hi `by', lpattern("#") color("`col'") msymbol(none) )  ///
-					(`graphcmd' `v'lo `by' , lpattern("#") color("`col'") msymbol(none) )
-				}
-				else {
+				// Confidence intervals depending on formatting
+				if "`cipattern'"=="lines" | "`cipattern'"=="" {
 					local graphs 	`graphs'	///
-						(rarea `v'hi `v'lo `by', color("`col'") )  						
+						(`graphcmd' `v'hi `by', lpattern("#") color("`col'") msymbol(none) )  ///
+						(`graphcmd' `v'lo `by' , lpattern("#") color("`col'") msymbol(none) )
+				}
+				else if "`cipattern'"=="shaded" {
+					local graphs 	`graphs'	///
+						(rarea `v'hi `v'lo `by', color(`col'*`ci_shade_coef') )  
+									
 				}
 
 				if "`lfit'"=="lfit" {
@@ -481,12 +491,22 @@ program define cellgraph
 					}
 				}
 				else {
-					local graphs `graphs' ///
-						(`graphcmd' `v'hi `1' if __dby2_`i'==1  , lpattern("#") color(`col'*.6) msymbol(none) )  ///
-						(`graphcmd' `v'lo `1' if __dby2_`i'==1  , lpattern("#") color(`col'*.6) msymbol(none) )  ///
-						(`graphcmd' `v'_`stat'  `1' if __dby2_`i'==1 , `lpattern' `msymbol' `msize' `mlabel' `lwidth' color("`col'") )
-					local legendlabel `legendlabel' label(`=`i'*3' "`catlabel'")
-					local order `order' `=`i'*3'
+					// Confidence intervals depending on formatting
+					if "`cipattern'"=="lines" | "`cipattern'"=="" {	
+						local graphs `graphs' ///
+							(`graphcmd' `v'hi `1' if __dby2_`i'==1  , lpattern("#") color(`col'*.6) msymbol(none) )  ///
+							(`graphcmd' `v'lo `1' if __dby2_`i'==1  , lpattern("#") color(`col'*.6) msymbol(none) )  
+							local legendlabel `legendlabel' label(`=`i'*3' "`catlabel'")
+							local order `order' `=`i'*3'
+					}
+					else if "`cipattern'"=="shaded" {
+						local graphs `graphs' (rarea `v'hi `v'lo `1' if __dby2_`i'==1 , color(`col'*`ci_shade_coef') )  
+						local legendlabel `legendlabel' label(`=`i'*2' "`catlabel'")
+						local order `order' `=`i'*2'
+					}
+					local graphs `graphs' (`graphcmd' `v'_`stat'  `1' if __dby2_`i'==1 , `lpattern' `msymbol' `msize' `mlabel' `lwidth' color("`col'") )
+					
+	
 				}
 				if "`coef'"=="coef" {
 					reg `v'_`stat' `1' if __dby2_`i'==1

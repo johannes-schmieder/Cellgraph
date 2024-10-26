@@ -82,8 +82,10 @@ set tracedepth 1
 
 local i 100 
 
-cellgraph logwage, by(year) name(g`i++') title("Log Wage") shaded_ci
+cellgraph logwage , by(year female) name(g`i++') title("Log Wage") ///
+	cipattern("shaded") lpattern ci_shade_coef(.1) nomsymbol
 
+cellgraph logwage, by(year) name(g`i++') title("Log Wage") cipattern("lines") lpattern 
 
 exit 
 
