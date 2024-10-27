@@ -180,5 +180,9 @@ cython_debug/
 *.snm
 *.vrb
 
+# To ignore .toc files but include stata.toc
+*.toc
+!stata.toc
+
 # OSX
 .DS_Store

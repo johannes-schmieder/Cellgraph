@@ -11,6 +11,3 @@ or if you have the Stata github package installed:
 ```stata
 github install johannes-schmieder/cellgraph
 ```
-
-test
-
