@@ -66,7 +66,6 @@ program define cellgraph
 		Name(str) ///
 		Title(str) SUBTitle(passthru) YTITle(passthru)  ///
 		NOCI ADDNOTES NODATE NOTITLE NONOTES ///
-		msymbol(passthru) ///
 		msymbols(str) ///
 		NOMSYMbol /// 
 		MSIZE(passthru) ///
