@@ -7,23 +7,10 @@ program drop _all
 graph drop _all
 
 do cellgraph.ado
+ 
+set trace on
+set tracedepth 1
 
-
-sysuse nlsw88
-
-cellgraph wage, by(grade)
-cellgraph wage, by(grade union)
-cellgraph wage, by(grade union)  stat(max)
-cellgraph wage if industry>2 & industry<10, by(grade industry) nonotes noci legend(col(2))
-cellgraph wage, by(grade) stat(p25 p50 p90)
-cellgraph wage, by(grade) stat(sd iqr)
-cellgraph wage married, by(grade)
-cellgraph wage married, by(grade) stat(sd iqr)
-
-
-
-
-exit
 
 // ====== Create Test Data ======
 
@@ -64,8 +51,11 @@ replace industry = ceil(runiform() * 5) if runiform() < 0.1  // 10% chance of in
 
 // Generate log wage with returns to education, experience, and gender gap
 gen experience = age - educ - 6
-gen logwage = 1.5 + 0.08 * educ + 0.02 * experience - 0.0003 * experience^2 ///
+gen logwage = 1.5 + 0.08 * educ + 0.12 * experience - 0.002 * experience^2 ///
     - 0.15 * female + 0.1 * industry + rnormal(0, 0.3) * (year-`tmin')*.03
+
+	
+g byear = year - age 
 
 // Label variables
 label var person_id "Person identifier"
@@ -76,6 +66,7 @@ label var logwage "Log hourly wage"
 label var female "Female (0/1)"
 label var industry "Industry (1-5)"
 label var experience "Years of potential experience"
+label var byear "Birth Year"
 
 // Label values for industry
 label define ind_label 1 "Manufacturing" 2 "Services" 3 "Retail" 4 "Technology" 5 "Finance"
@@ -87,8 +78,6 @@ label values female female_label
 // Sort dataset
 sort person_id year
 
-// Display summary statistics
-summarize
 
 // ====== Test Cellgraph ======
 
@@ -98,7 +87,7 @@ set tracedepth 1
 local i 100 
 
 cellgraph logwage , by(year female) name(g`i++') title("Log Wage") ///
-	cipattern("shaded") lpattern ci_shade_coef(.1) nomsymbol
+	cipattern("shaded") lpattern ciopacity(10) nomsymbol
 
 cellgraph logwage, by(year) name(g`i++') title("Log Wage") cipattern("lines") lpattern 
 
@@ -116,44 +105,14 @@ cellgraph logwage, by(year) name(g`i++') title("Log Wage") xline(0) stat(p10 p50
 cellgraph logwage, by(year) name(g`i++') title("Log Wage") ///
 	xline(0) mcounts stat(p10 p50 p90) legend(size(vsmall)) addnotes ylabel(,angle(horizontal)) ///
 	nomsymbol lpattern gradient
-//
-// 	err
-// cellgraph logearn, by(yrsince) name(g`i++') title("Log Earnings") ///
-// 	xline(0) mcounts stat(p10 p50 p90) legend(size(small) pos(10) ring(0) col(1))  msymbol(none) lpattern
 	
 cellgraph logwage, by(year) name(g`i++') title("Log Earnings") ///
 	xline(0)   legend(size(small) pos(10) ring(0) col(1))  line  cipattern(shaded)
 
-cellgraph logwage, by(year treatment) line
-err
-	
-cellgraph logwage, by(year treatment) name(g`i++') title("Log Earnings") ///
-	xline(0) mcounts  legend(size(small) pos(10) ring(0) col(1))  msymbol(none) lpattern
-err
 
-local i 100
-qui sum logwage 
-replace logwage = logwage - r(mean)
-cellgraph logwage, by(year) name(g`i++') title("Log Earnings") xline(0) mcounts 
 
-err
-cellgraph logearn, by(yrsince treatment) name(g`i++') title("Log Earnings") xline(0) mcounts
-cellgraph logearn firmeff, by(yrsince) name(g`i++') title("Log Earnings") xline(0) mcounts legend(col(1))
-cellgraph logearn, by(yrsince treatment) name(g`i++') stat(median) title("Log Earnings") xline(0) mcounts
+cellgraph logwage, by(year byear) gradient line  legend(off) noci
 
-cellgraph logearn if treatment==1, by(yrsince ) name(g`i++') stat(p25 median p75) title("Log Earnings") xline(0) mcounts 
+cellgraph logwage if age<=50 & byear>=1970, by(year byear) gradient line  legend(off) noci ///
+	title(Wage - experience profiles for different birth cohorts)
 
-// cellgraph logwage logwage2, by(year) stat(mean) name(g`i++')
-
-// cellgraph logwage, by(year treatment) stat(mean) name(g`i++')
-
-// set trace on
-// set tracedepth 1
-// cellgraph logwage, by(year) stat(p10 p25 p50 p75 p90) name(g`i++') nonotes legend(col(2))
-
-// this produces a graph equivalent to the popular binscatter command
-// cellgraph logwage, by(ability) binscatter(20) lfit scatter nonotes legend(off)
-
-sysuse nlsw88, clear 
-cellgraph wage, by(grade union) mcounts 
-cellgraph wage, by(grade union) mcounts stat(count)

@@ -14,20 +14,6 @@
 // Data is collapsed to cell level, where cells are defined by one or two categorical variables (byvar1 and byvar2)
 // and cell means (or other statistics) of a third variable (graphvar) are graphed. If more than one graphvar is specified,
 // then each graphvar is plotted.
-//
-// Options:
-// colors(color1 color2 ...) : provide a list of colors to replace standard palette
-// name(graphname) : provide a graph name (just like the name option in other graph commands)
-// stat(statistics) : the cell statistic to be used if not specified "mean" is assumed,
-// other possibilities: min max and sum, ...
-// it is also possible to show more than one stat
-// noci : don't display confidence intervals
-// nonotes : don't display any notes in legend
-// nodate: don't display date in notes
-// *: provide any twoway options to pass through to the call of the twoway command
-//   see the example for why this might be useful. Can also used to overwrite options that are given as standard,
-//   for example title(My Title) would overwrite the standard title with "My Title"
-
 
 // Example:
 /*
@@ -78,9 +64,9 @@ program define cellgraph
 		coef                    /// display regression coefficients.
 		45deg                   /// add a 45-degree reference line.
 		/// === Confidence intervals ===
-		noci                    /// don't display confidence intervals.
+		NOCI                    /// don't display confidence intervals.
 		cipattern(str)          /// specify confidence interval pattern, either 'shaded' or 'lines'.
-		ci_shade_coef(real 0.3) /// specify the shading coefficient for confidence intervals.
+		ciopacity(integer 20)   /// specify the shading coefficient for confidence intervals.
 		/// === Legend ===
 		addnotes                /// Add notes with sample sizes to the legend.
 		samplenotes(str)        /// add sample notes to the plot.
@@ -124,21 +110,17 @@ program define cellgraph
 		disp in red "Error: CIPattern must be either 'shaded', 'lines', or missing."
 		error 198
 	}
-
-
-
+	if "`cipattern'" == "" local cipattern "shaded"
 
 	marksample touse
 
-	// if "`msymbol'"=="" local msymbol msymbol("O")
-	// if "`msymbol'"=="" local msymbol msymbol(none)
-
-	local wc : word count `by'
-	if `wc'>2 {
+	// Count the number of by variables and check if it is 1 or 2
+	local number_of_by_vars : word count `by'
+	if `number_of_by_vars'>2 {
 		disp "Specify maximum 2 by variables"
 		error 198
 	}
-	else if `wc'==2 {
+	else if `number_of_by_vars'==2 {
 		tokenize `by'
 		confirm variable `1'
 		confirm variable `2'
@@ -155,6 +137,15 @@ program define cellgraph
 		confirm variable `by'
 	}
 
+	// Calculate number of stats
+	if "`stat'"=="" {
+		local stat mean
+	}
+	else {
+		local sc : word count `stat'
+		local steps = `sc'
+	}
+	// Create a color gradient if the gradient option is specified
 	if "`gradient'"!="" {
 		local color1 26 31 191
 		local r1 : word 1 of `color1'
@@ -177,17 +168,24 @@ program define cellgraph
 			else      local colors `colors'; `r' `g' `b'
 		}
 
-		locallist `colors', name(colors)
+		__locallist `colors', name(colors)
+
+		di `"`colors'"'
 	}
 
 
+	// Set the default statistic to mean if not specified	
+	
 
-	if "`stat'"=="" local stat mean
+	// Set the noci option if statistic is not mean
 	if "`stat'"!="mean" local noci noci
+
+	// Count the number of statistics and set the noci option if there are more than one
 	local sc : word count `stat'
 	if `sc'>1 local noci noci
 
-	if `sc'>1 & `wc'>1 {
+	// Check if more than one by variable and more than one statistic are specified
+	if `sc'>1 & `number_of_by_vars'>1 {
 		di in red "You can either specify more than 1 'by' variable or more than one statistic, but not both"
 		error 198
 	}
@@ -204,15 +202,16 @@ program define cellgraph
 	if "`title'"=="" local title `varlist'
 	if "`name'"!="" local nameopt name(`name')
 
+	// Preserve the data
 	preserve
 	qui keep if `touse'
-	if `wc'==1 & `vc'==1 {
+	if `number_of_by_vars'==1 & `vc'==1 {
 		qui count if `varlist'!=. & `by' !=. & `touse'
 		local N = r(N)
 		local cattit : variable label `by'
 		if "`cattit'"=="" local cattit `by'
 	}
-	if `wc'==1 & `vc'>1 {
+	if `number_of_by_vars'==1 & `vc'>1 {
 		local cattit : variable label `by'
 		if "`cattit'"=="" local cattit `by'
 	}
@@ -228,18 +227,19 @@ program define cellgraph
 		}
 	}
 
+	// Binning options
 	if `bin'!=0 & `binscatter'!=0 {
 		di in red "Options 'bin' and 'binscatter'"
 		error 184 // cannot be combined
 	}
-	if `wc'==1  & `bin'!=0 {
+	if `number_of_by_vars'==1  & `bin'!=0 {
 		replace `by' = `by'-mod(`by',`bin')+`bin'*0.5
 	}
-	if `wc'==2  & `bin'!=0 {
+	if `number_of_by_vars'==2  & `bin'!=0 {
 		local first_by_var : word 1 of `by'
 		replace `first_by_var' = `first_by_var'-mod(`first_by_var',`bin')+`bin'*0.5
 	}
-	if `wc'==1 & `binscatter'!=0 {
+	if `number_of_by_vars'==1 & `binscatter'!=0 {
 		local first_by_var : word 1 of `by'
 		tempvar miss dum binned
 		g `miss' = missing(`first_by_var')
@@ -247,7 +247,7 @@ program define cellgraph
 		egen `binned' = mean(`first_by_var'), by(`dum')
 		qui replace `first_by_var' = `binned'
 	}
-	if `wc'==2 & `binscatter'!=0 {
+	if `number_of_by_vars'==2 & `binscatter'!=0 {
 		local first_by_var : word 1 of `by'
 		tempvar miss dum binned
 		g `miss' = missing(`first_by_var')
@@ -256,13 +256,12 @@ program define cellgraph
 		qui replace `first_by_var' = `binned'
 	}
 
-
-
-
-	if "`gtools'"=="gtools" gcollapse  `clist' if `touse' [`weight' `exp'], by(`by') fast
+	// Collapse the data
+	if "`gtools'"=="gtools"      gcollapse  `clist' if `touse' [`weight' `exp'], by(`by') fast
 	else if "`ftools'"=="ftools" fcollapse  `clist' if `touse' [`weight' `exp'], by(`by') fast
-	else qui collapse  `clist' if `touse' [`weight' `exp'], by(`by') fast
+	else qui                      collapse  `clist' if `touse' [`weight' `exp'], by(`by') fast
 
+	// Create labels for the statistics
 	foreach s in `stat' {
 		local j 1
 		foreach v in `varlist' {
@@ -283,8 +282,8 @@ program define cellgraph
 		}
 	}
 
-	// Renormalize Variables to Baseline
-	if `"`baseline'"'!=`""' & `wc'==1 {
+	// Renormalize Variables to Baseline by subtracting the mean of the baseline category (mostly makes sense for log variables)
+	if `"`baseline'"'!=`""' & `number_of_by_vars'==1 {
 		foreach s in `stat' {
 			foreach v in `varlist' {
 				qui sum  `v'_`s' if  `by'==`baseline'
@@ -296,7 +295,7 @@ program define cellgraph
 			}
 		}
 	}
-	if `"`baseline'"'!=`""' & `wc'==2 {
+	if `"`baseline'"'!=`""' & `number_of_by_vars'==2 {
 		foreach s in `stat' {
 			foreach v in `varlist' {
 				qui tab `2', gen(__dby2_)
@@ -313,23 +312,25 @@ program define cellgraph
 		}
 	}
 
-
-
+	// Create labels for observation counts for each outcome variable and count the number of outcome variables
 	local varcount 0
 	foreach v in `varlist' {
 		label var obs`v' "No. Observations"
 		local varcount = `varcount'+1
 	}
 
+	// If there is only one outcome variable, use its label as y-axis title
 	if `varcount'==1 {
 		if `"`ytitle'"'=="" local ytitle ytitle(`"`title1'"')
 	}
 
+	// Set the graph command to be used
 	local graphcmd connected
 	if "`scatter'"!="" local graphcmd scatter
 	if "`line'"!="" local graphcmd line
 
-	if `wc'==1 {
+	// Build graph command if there is only one by variable
+	if `number_of_by_vars'==1 {
 		local notes ""Number of observations: `N'" "
 		if  "`stat'"=="mean" & "`noci'"=="" {
 			local i 1
@@ -356,14 +357,14 @@ program define cellgraph
 					local mlabel mlabel(obs`v') mlabcolor(black) mlabsize(vsmall) mlabposition(1)
 				}
 				// Confidence intervals depending on formatting
-				if "`cipattern'"=="lines" | "`cipattern'"=="" {
+				if "`cipattern'"=="lines" {
 					local graphs 	`graphs'	///
-						(`graphcmd' `v'hi `by', lpattern("#") color("`col'") msymbol(none) )  ///
-						(`graphcmd' `v'lo `by' , lpattern("#") color("`col'") msymbol(none) )
+						(`graphcmd' `v'hi `by', lpattern("#") color("`col' *.5") msymbol(none) )  ///
+						(`graphcmd' `v'lo `by' , lpattern("#") color("`col' *.5") msymbol(none) )
 				}
 				else if "`cipattern'"=="shaded" {
 					local graphs 	`graphs'	///
-						(rarea `v'hi `v'lo `by', color(`col'*`ci_shade_coef') )  
+						(rarea `v'hi `v'lo `by', color("`col' % `ciopacity'") )  
 									
 				}
 
@@ -398,11 +399,11 @@ program define cellgraph
 			foreach s in `stat' {
 				foreach v in `varlist' {
 					gettoken col colors:colors
-				if `msymbol_dum' {
-					gettoken msym msymbols:msymbols
-					local msymbol msymbol(`msym')
-				}
-				else local msymbol msymbol(none)
+					if `msymbol_dum' {
+						gettoken msym msymbols:msymbols
+						local msymbol msymbol(`msym')
+					}
+					else local msymbol msymbol(none)
 
 					if `lpattern_dum'  {
 						gettoken lpat lpatterns:lpatterns
@@ -421,8 +422,9 @@ program define cellgraph
 					if "`mcounts'"!=""{
 						local mlabel mlabel(obs`v') mlabcolor(black) mlabsize(vsmall) mlabposition(1)
 					}
-
+					
 					local graphs `graphs' (`graphcmd' `v'_`s' `by' , `lpattern' `msymbol' `msize' `mlabel' `lwidth' color("`col'") )
+					
 					// local statlabel : variable label `v'_`s'
 					// local legendlabel `legendlabel' label(`i' "`s'")
 					if "`lfit'"=="lfit" local order `order' `=`i'*2'
@@ -446,10 +448,9 @@ program define cellgraph
 			}
 		}
 	}
-	// di `"`order'"'
 
-
-	if `wc'==2 { // go over categories of second by variable
+	// Build graph command if there are two by variables
+	if `number_of_by_vars'==2 { // go over categories of second by variable
 		foreach v in `varlist' {
 			local cattit : variable label `1'
 			if "`cattit'"=="" local cattit `1'
@@ -486,7 +487,10 @@ program define cellgraph
 					local lpattern lpattern("#")
 				}
 
-				if "`noci'"!="" {
+
+				di `"`noci'"'
+				 
+				if "`noci'"=="noci" {
 					if "`lfit'"=="lfit" {
 						local graphs 	`graphs'	(lfit `v'_`stat'   `1' if __dby2_`i'==1, lpattern("shortdash") color("`col'") )
 					}
@@ -503,23 +507,24 @@ program define cellgraph
 						local legendlabel `legendlabel' label(`i' "`catlabel'")
 					}
 				}
-				else {
+				else { 
+
 					// Confidence intervals depending on formatting
-					if "`cipattern'"=="lines" | "`cipattern'"=="" {	
+					if "`cipattern'"=="lines"  {	
 						local graphs `graphs' ///
-							(`graphcmd' `v'hi `1' if __dby2_`i'==1  , lpattern("#") color(`col'*.6) msymbol(none) )  ///
-							(`graphcmd' `v'lo `1' if __dby2_`i'==1  , lpattern("#") color(`col'*.6) msymbol(none) )  
+							(`graphcmd' `v'hi `1' if __dby2_`i'==1  , lpattern("#") color("`col' *.5") msymbol(none) )  ///
+							(`graphcmd' `v'lo `1' if __dby2_`i'==1  , lpattern("#") color("`col' *.5") msymbol(none) )  
 							local legendlabel `legendlabel' label(`=`i'*3' "`catlabel'")
 							local order `order' `=`i'*3'
 					}
 					else if "`cipattern'"=="shaded" {
-						local graphs `graphs' (rarea `v'hi `v'lo `1' if __dby2_`i'==1 , color(`col'*`ci_shade_coef') )  
+						local graphs `graphs' (rarea `v'hi `v'lo `1' if __dby2_`i'==1 , color("`col' % `ciopacity'") )  
 						local legendlabel `legendlabel' label(`=`i'*2' "`catlabel'")
 						local order `order' `=`i'*2'
 					}
 					local graphs `graphs' (`graphcmd' `v'_`stat'  `1' if __dby2_`i'==1 , `lpattern' `msymbol' `msize' `mlabel' `lwidth' color("`col'") )
 					
-	
+
 				}
 				if "`coef'"=="coef" {
 					reg `v'_`stat' `1' if __dby2_`i'==1
@@ -566,7 +571,7 @@ program define cellgraph
 			local figtitle `"`title1' by `cattit'"'
 		}
 	}
-	if `"`coef'"'=="coef" & `wc'==1 {
+	if `"`coef'"'=="coef" & `number_of_by_vars'==1 {
 		// local figtitle `"`figtitle', Slope: `coef_b' [`coef_se'] "'
 
 		local xpos = `xmin' + 0.85 * (`xmax' - `xmin')
@@ -686,6 +691,31 @@ program define __SignificantDigits // idea stolen from outreg2.ado
 	c_local fmt "`fmt'"
 end
 
+/*---------------------------------------------------------*/
+/* Program to create local macros containing several string 
+   elements.
+	e.g. locallist First Element; Second Element; Third, name(ellist)
+	produces a local macro ellist containing:
+	`"First Element"' `"Second Element"' `"Third"' 
+	Notice the correct placement of the `" and "'	 
+*/
+/*---------------------------------------------------------*/
+
+capture program drop __locallist
+program define __locallist
+	syntax anything, Name(str) [Parse(str)]
+	if `"`parse'"'=="" local parse `";"'
+	tokenize `"`anything'"', parse(`"`parse'"')
+	local i 0
+	while `"`1'"'!="" {
+		if `"`1'"'!=`"`parse'"' {
+			if !`i++' local `name' `"`"`1'"'"'
+			else local `name' `"``name'' `"`1'"'"'
+		}
+		mac shift
+	} 
+	c_local `name' `"``name''"'
+end 
 
 // sysuse auto , clear
 // cellgraph price, by(gear_ratio foreign) msymbols(triangle diamond)

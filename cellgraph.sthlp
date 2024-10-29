@@ -29,7 +29,7 @@ The data is collapsed to cell level, where each cell is defined by {it:byvar1} i
 
 {it:options}{col 26}description
 {hline 70}
-{help cellgraph##main:Main}
+{ul: Main}
   {cmd:name(}{it:graphname}{cmd:)} {col 26}{...} 
   provide a graph name (just like the name option in other graph commands).
   {cmd:stat(}{it:statistics}{cmd:)} {col 26}{...} 
@@ -41,7 +41,7 @@ The data is collapsed to cell level, where each cell is defined by {it:byvar1} i
   {cmd:baseline(}{it:string}{cmd:)}: {col 26}{...} 
   normalize series to this baseline observation (subtraction).
 
-{help cellgraph##graphoptions:Graph options}
+{ul:Graph options}
   {cmd:lpattern}: {col 26}{...} 
   specify line pattern.
   {cmd:lpatterns(}{it:string}{cmd:)}: {col 26}{...} 
@@ -65,7 +65,7 @@ The data is collapsed to cell level, where each cell is defined by {it:byvar1} i
   {col 26}{...} 
   would overwrite the standard title with "My Title"
 
-{help cellgraph##markeroptions:Marker options}
+{ul: Marker options}
   {cmd:msymbols(}{it:symbol1 symbol2 ...}{cmd:)} {col 26}{...} 
   Change marker symbol where {it:symbol1 etc} is of {help symbolstyle}.
   {cmd:nomsymbol}: {col 26}{...} 
@@ -75,7 +75,7 @@ The data is collapsed to cell level, where each cell is defined by {it:byvar1} i
   {cmd:mcounts}: {col 26}{...} 
   display observation counts next to markers.
 
-{help cellgraph##binningoptions:Binning options}
+{ul: Binning options}
   {cmd:binscatter(}{it:integer}{cmd:)}: {col 26}{...} 
   create a binned scatter plot with the specified number of bins.
   {cmd:bin(}{it:real}{cmd:)} {col 26}{...} 
@@ -87,15 +87,15 @@ The data is collapsed to cell level, where each cell is defined by {it:byvar1} i
   {cmd:45deg}: {col 26}{...} 
   add a 45-degree reference line.
 
-{help cellgraph##cioptions:Confidence intervals}
+{ul: Confidence intervals}
   {cmd:noci} {col 26}{...} 
   don't display confidence intervals.
   {cmd:cipattern(}{it:string}{cmd:)}: {col 26}{...} 
   specify confidence interval pattern, either 'shaded' or 'lines'.
-  {cmd:ci_shade_coef(}{it:real}{cmd:)}: {col 26}{...} 
-  specify the shading coefficient for confidence intervals.
+  {cmd:ciopacity(}{it:integer}{cmd:)}: {col 26}{...} 
+  specify the opacity for confidence intervals (0-100).
 
-{help cellgraph##legendoptions:Legend}
+{ul: Legend options}
   {cmd:addnotes}: {col 26}{...} 
   Add notes with sample sizes to the legend.
   {cmd:samplenotes(}{it:string}{cmd:)}: {col 26}{...} 
@@ -105,7 +105,7 @@ The data is collapsed to cell level, where each cell is defined by {it:byvar1} i
   {cmd:nodate} {col 26}{...} 
   don't display date in notes.
 
-{help cellgraph##tools:Computational Tools}
+{ul: Computational Tools}
   {cmd:gtools}: {col 26}{...} 
   use gtools for data processing.
   {cmd:ftools}: {col 26}{...} 
@@ -122,89 +122,76 @@ The data is collapsed to cell level, where each cell is defined by {it:byvar1} i
 
 Data is collapsed to cell level, where cells are defined by one or two categorical variables (byvar1 and byvar2) and cell means (or other statistics) of a third variabla ({it:varname}) are graphed.
 
-{marker options}
-{title:Options}
-{marker main}
-{dlgtab:Main}
-
-Main options are:
-
-{marker graphoptions}
-{dlgtab:Graph options}
-
-under construction
-{marker markeroptions}
-{dlgtab:Marker options}
-
-under construction
-
-{marker binningoptions}
-{dlgtab:Binning options}
-
-under construction
-
-{marker cioptions}
-{dlgtab:Confidence intervals}
-
-under construction
-
-{marker legendoptions}
-{dlgtab:Legend}
-
-under construction  
-
-{marker tools}
-{dlgtab:Computational Tools}
-
-Options to use the ftools or gtools package for the collapse command. Can result in speed gains for large data sets.
 
 
 {marker examples}
 {title:Examples}
 
-{space 8}{hline 27} {it:Example 1} {hline 27}
+{space 8}{hline 10} {it:Example 1 - Basic Plot: One outcome variable one by variable} {hline 10}
 {cmd}{...}
 {* example_start - ex1}{...}
           sysuse nlsw88, clear
+          keep if grade>=8
           cellgraph wage, by(grade) 
 {* example_end}{...}
 {txt}{...}
 {space 8}{hline 80}
 {space 8}{it:({stata cellgraph_run ex1 using cellgraph.sthlp, preserve:click to run})}
 
-{space 8}{hline 27} {it:Example 2} {hline 27}
+{space 8}{hline 10} {it:Example 2 - One outcome variable, two by variables, marker counts} {hline 10}
 {cmd}{...}
 {* example_start - ex2}{...}
           sysuse nlsw88, clear
-          gen logwage = log(wage)
-          cellgraph logwage, by(grade union) 
+          gen logwage = log(wage) if grade>=8
+          label var logwage "Log Wage"
+          cellgraph logwage, by(grade union) mcounts
 {* example_end}{...}
 {txt}{...}
 {space 8}{hline 80}
 {space 8}{it:({stata cellgraph_run ex2 using cellgraph.sthlp, preserve:click to run})}
 
-{space 8}{hline 27} {it:Example 3} {hline 27}
+{space 8}{hline 10} {it:Example 3 - Multiple Statistics one by variable, color gradient} {hline 10}
 {cmd}{...}
 {* example_start - ex3}{...}
           sysuse nlsw88, clear
-          gen logwage = log(wage)
-          cellgraph logwage, by(grade) stat(p10 p25 p50 p75 p90) 
+          gen logwage = log(wage) if grade>=8
+          label var logwage "Log Wage"
+          cellgraph logwage, by(grade) stat(p10 p25 p50 p75 p90) gradient 
 {* example_end}{...}
 {txt}{...}
 {space 8}{hline 80}
 {space 8}{it:({stata cellgraph_run ex3 using cellgraph.sthlp,  preserve:click to run})}
 
-{space 8}{hline 27} {it:Example 4} {hline 27}
+{space 8}{hline 10} {it:Example 4 - Two Outcomes, two statistics} {hline 10}
 {cmd}{...}
 {* example_start - ex4}{...}
           sysuse nlsw88, clear
-          gen logwage = log(wage)
-          cellgraph wage if industry>2 & industry<10, by(grade industry) ///
-            nonotes noci legend(col(2))
+          cellgraph wage hours if grade>=8 , by(grade) stat (mean median) mcounts ciopacity(20)
 {* example_end}{...}
 {txt}{...}
 {space 8}{hline 80}
 {space 8}{it:({stata cellgraph_run ex4 using cellgraph.sthlp,  preserve:click to run})}
+
+{space 8}{hline 10} {it:Example 5 - Binned Scatterplot with Linear Fit} {hline 10}
+{cmd}{...}
+{* example_start - ex5}{...}
+          sysuse auto , clear
+          cellgraph mpg, by(weight) binscatter(20) scatter noci lfit coef legend(off)
+{* example_end}{...}
+{txt}{...}
+{space 8}{hline 80}
+{space 8}{it:({stata cellgraph_run ex5 using cellgraph.sthlp,  preserve:click to run})}
+
+{space 8}{hline 10} {it:Example 6 - Binned Scatterplot with 2 Groups} {hline 10}
+{cmd}{...}
+{* example_start - ex6}{...}
+          sysuse auto , clear
+          cellgraph mpg, by(weight foreign) binscatter(20) scatter noci lfit coef 
+{* example_end}{...}
+{txt}{...}
+{space 8}{hline 80}
+{space 8}{it:({stata cellgraph_run ex6 using cellgraph.sthlp,  preserve:click to run})}
+
 
 {marker author}
 {title:Author}
