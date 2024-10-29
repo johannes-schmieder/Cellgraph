@@ -48,34 +48,48 @@ capture program drop cellgraph
 program define cellgraph
 	syntax varlist [if] [in] [aweight fweight] , by(str) ///
 		[ ///
-		Stat(str) ///
-		bin(real 0) ///
-		scatter ///
-		line ///
-		lfit ///
-		coef ///
-		45deg ///
-		GRADient ///
-		binscatter(integer 0) ///
-		BASEline(str) /// Normalize series to this baseline observation (subtraction)
-		Colors(str) ///
-		lpattern ///
-		lpatterns(str) /// 		
-		cipattern(str) ///
-		ci_shade_coef(real 0.3) ///
-		Name(str) ///
-		Title(str) SUBTitle(passthru) YTITle(passthru)  ///
-		NOCI ADDNOTES NODATE NOTITLE NONOTES ///
-		msymbols(str) ///
-		NOMSYMbol /// 
-		MSIZE(passthru) ///
-		LIst SAMPLENotes(str) ///
-		gtools ftools ///
-		mcounts /// Option to display observation counts next to markers
-		lwidth(passthru) ///
-		* ///
-	]
-
+		/// === Main ===
+		Name(str)               /// provide a graph name (just like the name option in other graph commands).
+		Stat(str)               /// the cell statistic to be used. If not specified "mean" is assumed. Other possibilities: min, max, sum, sd, var, p10, p25, p50, p75, p90, etc.
+		list                    /// list collapsed data at the end of the command.
+		BASEline(str)           /// normalize series to this baseline observation (subtraction).
+		Title(str)              /// Title	
+		SUBTitle(passthru)      /// Subtitle
+		YTITle(passthru)        /// Y-axis title
+		NOTITLE                 /// don't display title
+		/// === Graph options ===
+		lpattern                /// specify line pattern.
+		lpatterns(str)          /// specify multiple line patterns.
+		scatter                 /// create a scatter plot.
+		line                    /// create a line plot.
+		GRADient                /// apply a color gradient as the gradient for the second by variable.
+		Colors(str)             /// provide a list of colors to replace standard palette.
+		lwidth(passthru)        /// specify line width.
+		*                       /// provide any twoway options to pass through to the call of the twoway command. Can also be used to overwrite options that are given as standard, for example title(My Title) would overwrite the standard title with "My Title".
+		/// === Marker options ===
+		msymbols(str)            /// Change marker symbol where symbol1 etc is of symbolstyle.
+		NOMSYMbol                /// do not use marker symbols.
+		MSIZE(passthru)          /// specify marker size.
+		mcounts                  /// display observation counts next to markers.
+		/// === Binning options ===
+		binscatter(integer 0)    /// create a binned scatter plot with the specified number of bins.
+		bin(real 0)              /// bin the data by the specified real number as bin width.
+		lfit                    /// add a linear fit line to the plot.
+		coef                    /// display regression coefficients.
+		45deg                   /// add a 45-degree reference line.
+		/// === Confidence intervals ===
+		noci                    /// don't display confidence intervals.
+		cipattern(str)          /// specify confidence interval pattern, either 'shaded' or 'lines'.
+		ci_shade_coef(real 0.3) /// specify the shading coefficient for confidence intervals.
+		/// === Legend ===
+		addnotes                /// Add notes with sample sizes to the legend.
+		samplenotes(str)        /// add sample notes to the plot.
+		NONOTES                 /// don't display any notes in legend.
+		NODATE                  /// don't display date in notes.
+		/// === Computational Tools ===
+		gtools                  /// use gtools for data processing.
+		ftools                  /// use ftools for data processing.
+		]
 
 	local colors `colors' ///
 		dknavy  cranberry dkgreen edkblue ///

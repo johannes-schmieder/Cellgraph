@@ -33,10 +33,11 @@ The data is collapsed to cell level, where each cell is defined by {it:byvar1} i
   {cmd:name(}{it:graphname}{cmd:)} {col 26}{...} 
   provide a graph name (just like the name option in other graph commands).
   {cmd:stat(}{it:statistics}{cmd:)} {col 26}{...} 
-  the cell statistic to be used. If not specified "mean" is assumed. Other possibilities: min max and sum.
+  the cell statistic to be used. If not specified "mean" is assumed. 
+  {col 26}{...} 
+  Other possibilities: min, max, sum, sd, var, p10, p25, p50, p75, p90, etc.
   {cmd:list} {col 26}{...} 
-  list collapsed data
-  {cmd:options(}{it:string}{cmd:)} {col 26}{...} 
+  list collapsed data at the end of the command. 
   {cmd:baseline(}{it:string}{cmd:)}: {col 26}{...} 
   normalize series to this baseline observation (subtraction).
 
@@ -51,13 +52,18 @@ The data is collapsed to cell level, where each cell is defined by {it:byvar1} i
   create a line plot.
   {cmd:gradient}: {col 26}{...} 
   apply a color gradient as the gradient for the second by variable.
-  {cmd:colors(}{it:color1 color2 ...}{cmd:)} {col 26}{...} 
+  {cmd:colors(}{it:col1 col2 ...}{cmd:)} {col 26}{...} 
   provide a list of colors to replace standard palette.
   {cmd:lwidth(}{it:string}{cmd:)}: {col 26}{...} 
   specify line width.
+  {cmd:*} {col 26}{...} 
   provide any twoway options to pass through to the call of the twoway command
-  see the example for why this might be useful. Can also be used to overwrite options that are given as standard,
-  for example options(title(My Title)) would overwrite the standard title with "My Title"
+  {col 26}{...} 
+  see the example for why this might be useful. Can also be used to 
+  {col 26}{...} 
+  overwrite options that are given as standard, for example {cmd:title(My Title)}
+  {col 26}{...} 
+  would overwrite the standard title with "My Title"
 
 {help cellgraph##markeroptions:Marker options}
   {cmd:msymbols(}{it:symbol1 symbol2 ...}{cmd:)} {col 26}{...} 
@@ -156,15 +162,49 @@ Options to use the ftools or gtools package for the collapse command. Can result
 {marker examples}
 {title:Examples}
 
-{p 8 16}{inp:. sysuse nlsw88}{p_end}
+{space 8}{hline 27} {it:Example 1} {hline 27}
+{cmd}{...}
+{* example_start - ex1}{...}
+          sysuse nlsw88, clear
+          cellgraph wage, by(grade) 
+{* example_end}{...}
+{txt}{...}
+{space 8}{hline 80}
+{space 8}{it:({stata cellgraph_run ex1 using cellgraph.sthlp, preserve:click to run})}
 
-{p 8 16}{inp:. cellgraph wage, by(grade) }{p_end}
+{space 8}{hline 27} {it:Example 2} {hline 27}
+{cmd}{...}
+{* example_start - ex2}{...}
+          sysuse nlsw88, clear
+          gen logwage = log(wage)
+          cellgraph logwage, by(grade union) 
+{* example_end}{...}
+{txt}{...}
+{space 8}{hline 80}
+{space 8}{it:({stata cellgraph_run ex2 using cellgraph.sthlp, preserve:click to run})}
 
-{p 8 16}{inp:. cellgraph wage, by(grade union) }{p_end}
+{space 8}{hline 27} {it:Example 3} {hline 27}
+{cmd}{...}
+{* example_start - ex3}{...}
+          sysuse nlsw88, clear
+          gen logwage = log(wage)
+          cellgraph logwage, by(grade) stat(p10 p25 p50 p75 p90) 
+{* example_end}{...}
+{txt}{...}
+{space 8}{hline 80}
+{space 8}{it:({stata cellgraph_run ex3 using cellgraph.sthlp,  preserve:click to run})}
 
-{p 8 16}{inp:. cellgraph wage, by(grade union) stat(max)}{p_end}
-
-{p 8 16}{inp:. cellgraph wage if industry>2 & industry<10, by(grade industry) nonotes noci options(legend(col(2)))) }{p_end}
+{space 8}{hline 27} {it:Example 4} {hline 27}
+{cmd}{...}
+{* example_start - ex4}{...}
+          sysuse nlsw88, clear
+          gen logwage = log(wage)
+          cellgraph wage if industry>2 & industry<10, by(grade industry) ///
+            nonotes noci legend(col(2))
+{* example_end}{...}
+{txt}{...}
+{space 8}{hline 80}
+{space 8}{it:({stata cellgraph_run ex4 using cellgraph.sthlp,  preserve:click to run})}
 
 {marker author}
 {title:Author}
