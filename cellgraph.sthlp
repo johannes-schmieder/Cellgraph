@@ -73,9 +73,7 @@ The data is collapsed to cell level, where each cell is defined by {it:byvar1} i
 {marker description}
 {title:Description}
 
-    Data is collapsed to cell level, where cells are defined by one or two categorical variables (byvar1 and byvar2) and cell means (or other statistics) of a third variabla ({it:varname}) are graphed.
-
-
+{p 4 4 2}Data is collapsed to cell level, where cells are defined by one or two categorical variables (byvar1 and byvar2) and cell means (or other statistics) of a third variabla ({it:varname}) are graphed.
 
 {marker examples}
 {title:Examples}
