@@ -86,6 +86,10 @@ set tracedepth 1
 
 local i 100 
 
+cellgraph educ industry, by(year)
+
+
+
 cellgraph logwage , by(year female) name(g`i++') title("Log Wage") ///
 	cipattern("shaded") lpattern ciopacity(10) nomsymbol
 

@@ -4,7 +4,7 @@
 
 // First Version: April 2008
 // Comments and suggestions welcome: johannes{at}bu.edu
-
+ 
 // Notes:
 // Routine to generate variably by variable graph (similar to tabstat but as graph)
 
@@ -361,22 +361,24 @@ program define cellgraph
 					local graphs 	`graphs'	///
 						(`graphcmd' `v'hi `by', lpattern("#") color("`col' *.5") msymbol(none) )  ///
 						(`graphcmd' `v'lo `by' , lpattern("#") color("`col' *.5") msymbol(none) )
+					local legend_order_jump 3
 				}
 				else if "`cipattern'"=="shaded" {
 					local graphs 	`graphs'	///
 						(rarea `v'hi `v'lo `by', color("`col' % `ciopacity'") )  
-									
+					local legend_order_jump 2									
 				}
 
 				if "`lfit'"=="lfit" {
 					if `varcount'==1 & `sc'==1 local lfit_col maroon
 					else local lfit_col `col'
 					local graphs 	`graphs'	(lfit `v'_mean `by' , lpattern("shortdash") color(`lfit_col') )
+					local legend_order_jump = `legend_order_jump'+1
 				}
 				local graphs `graphs' (`graphcmd' `v'_mean `by' , `lpattern' `msymbol' `msize' `mlabel' `lwidth' color("`col'") )
 
-				if "`lfit'"=="lfit" local order `order' `=`i'*4'
-				else local order `order' `=`i++'*3'
+				if "`lfit'"=="lfit" local order `order' `=`i'*`legend_order_jump''
+				else local order `order' `=`i++'*`legend_order_jump''
 
 				if "`coef'"=="coef" {
 					reg `v'_mean `by'
