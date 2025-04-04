@@ -32,7 +32,8 @@ The data is collapsed to cell level, where each cell is defined by {it:byvar1} i
     {cmd:scatter}: {col 34}create a scatter plot.
     {cmd:line}: {col 34}create a line plot.
     {cmd:gradient}: {col 34}apply a color gradient as the gradient for the second by variable.
-    {cmd:colors(}{it:col1 col2 ...}{cmd:)} {col 34}provide a list of colors to replace standard palette.
+    {cmd:colors(}{it:col1; col2; ...}{cmd:)} {col 34}provide a list of colors to replace standard palette. 
+    {col 34}Separate colors with semicolons. E.g. colors(dkgreen; cranberry; dknavy) or colors("234 40 100"; "128 0 128").
     {cmd:lwidth(}{it:string}{cmd:)}: {col 34}specify line width.
     {cmd:*} {col 34}provide any twoway options to pass through to the call of the twoway command
     {col 34}see the example for why this might be useful. Can also be used to 

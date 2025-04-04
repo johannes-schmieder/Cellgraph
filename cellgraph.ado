@@ -49,7 +49,7 @@ program define cellgraph
 		scatter                 /// create a scatter plot.
 		line                    /// create a line plot.
 		GRADient                /// apply a color gradient as the gradient for the second by variable.
-		Colors(str)             /// provide a list of colors to replace standard palette.
+		Colors(str)             /// provide a list of colors to replace standard palette. Separate colors with semicolons.
 		lwidth(passthru)        /// specify line width.
 		*                       /// provide any twoway options to pass through to the call of the twoway command. Can also be used to overwrite options that are given as standard, for example title(My Title) would overwrite the standard title with "My Title".
 		/// === Marker options ===
@@ -77,16 +77,42 @@ program define cellgraph
 		ftools                  /// use ftools for data processing.
 		]
 
-	local colors `colors' ///
-		dknavy  cranberry dkgreen edkblue ///
-		dkorange maroon olive 	eltblue ///
-		eltgreen emidblue erose blue ///
-		purple brown cyan  ebblue ///
-		emerald orange forest_green gold  ///
-		green khaki lavender lime ///
-		ltblue ltbluishgray ltkhaki  ///
-		midblue midgreen mint navy  olive_teal magenta ///
-		orange orange_red pink red sand sandb sienna stone teal yellow
+	if "`colors'" == "" {
+		local colors  ///
+			dknavy; cranberry; dkgreen; edkblue; ///
+			dkorange; maroon; olive; eltblue; ///
+			eltgreen; emidblue; erose; blue; ///
+			purple; brown; cyan; ebblue; ///
+			emerald; orange; forest_green; gold; ///
+			green; khaki; lavender; lime; ///
+			ltblue; ltbluishgray; ltkhaki; ///
+			midblue; midgreen; mint; navy; olive_teal; magenta; ///
+			orange; orange_red; pink; red; sand; sandb; sienna; stone; teal; yellow
+	}
+	else {
+		// Check if colors are properly semicolon-separated
+		local wordcount: word count `colors'
+		if `wordcount' > 1 {
+			// If multiple words but no semicolons, add them
+			if !strpos("`colors'", ";") {
+				display as text "Warning: Colors should be separated by semicolons. For example: colors(cranberry; dkgreen; dknavy)"
+				display as text "Attempting to format colors automatically..."
+				
+				local formatted_colors ""
+				foreach color of local colors {
+					if "`formatted_colors'" == "" {
+						local formatted_colors "`color'"
+					}
+					else {
+						local formatted_colors "`formatted_colors'; `color'"
+					}
+				}
+				local colors `formatted_colors'
+			}
+		}
+	}
+	__locallist `colors', name(colors)
+
 
 	// https://pinetools.com/gradient-generator
 
@@ -585,16 +611,17 @@ program define cellgraph
 	if `"`notitle'"'=="notitle" local figtitle ""
 
 
+	local legend_columns = 2 
 
 	// if `"`subtitle'"' != "" {
 	// 	local subtitle subtitle(`"`subtitle'"', margin(small) size(small) )
 	// }
 	twoway  ///
 		`graphs' ///
-		, scheme(s2mono) ///
+		, /// scheme(s2mono) ///
 		title(`"`figtitle'"', margin(small) size(small) ) /// box bexpand
 		`subtitle' ///
-		legend(order(`order') ring(1) region(color(none) margin(zero)) ///
+		legend(order(`order') pos(6) ring(1) region(color(none) margin(zero)) cols(`legend_columns') ///
 		size(small) symysize(*.5) symxsize(*1.2) ///
 		`legendlabel') ///
 		legend(note(`notes' , ///
