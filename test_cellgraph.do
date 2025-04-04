@@ -101,9 +101,11 @@ cellgraph logwage, by(year) name(g`i++') title("Log Wage") mcounts addnotes
 
 cellgraph logwage, by(year female) name(g`i++') title("Log Wage") mcounts 
 
+cellgraph logwage, by(year female) name(g`i++') title("Log Wage") mcounts colors(128 0 128; 128 128 0)
+
 cellgraph logwage, by(year) name(g`i++') title("Log Wage") xline(0) stat(p10 p50 p90) ///
 	legend(size(vsmall)) ylabel(,angle(horizontal)) ///
-	yscale(range(2.7 4)) ylabel(2.7(.1)4) nomsymbol lpattern 
+	yscale(range(2.7 4)) ylabel(3.5(.5)6) nomsymbol lpattern 
 
 
 cellgraph logwage, by(year) name(g`i++') title("Log Wage") ///

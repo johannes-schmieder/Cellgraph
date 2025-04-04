@@ -29,7 +29,7 @@
 
 */
 
-version 14.1
+version 18.0
 capture program drop cellgraph
 program define cellgraph
 	syntax varlist [if] [in] [aweight fweight] , by(str) ///
@@ -93,25 +93,30 @@ program define cellgraph
 		// Check if colors are properly semicolon-separated
 		local wordcount: word count `colors'
 		if `wordcount' > 1 {
-			// If multiple words but no semicolons, add them
-			if !strpos("`colors'", ";") {
-				display as text "Warning: Colors should be separated by semicolons. For example: colors(cranberry; dkgreen; dknavy)"
-				display as text "Attempting to format colors automatically..."
-				
-				local formatted_colors ""
-				foreach color of local colors {
-					if "`formatted_colors'" == "" {
-						local formatted_colors "`color'"
+			// Check if colors is in RGB format 
+			local is_rgb = regexm("`colors'", "([0-9]{1,3}) ([0-9]{1,3}) ([0-9]{1,3})")
+			if !`is_rgb' {
+				// If multiple words but no semicolons, add them
+				if !strpos("`colors'", ";") {
+					display as text "Warning: Colors should be separated by semicolons. For example: colors(cranberry; dkgreen; dknavy)"
+					display as text "Attempting to format colors automatically..."
+					
+					local formatted_colors ""
+					foreach color of local colors {
+						if "`formatted_colors'" == "" {
+							local formatted_colors "`color'"
+						}
+						else {
+							local formatted_colors "`formatted_colors'; `color'"
+						}
 					}
-					else {
-						local formatted_colors "`formatted_colors'; `color'"
-					}
+					local colors `formatted_colors'
 				}
-				local colors `formatted_colors'
-			}
+			}			
 		}
 	}
 	__locallist `colors', name(colors)
+
 
 
 	// https://pinetools.com/gradient-generator
