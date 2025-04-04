@@ -33,7 +33,7 @@ The data is collapsed to cell level, where each cell is defined by {it:byvar1} i
     {cmd:line}: {col 34}create a line plot.
     {cmd:gradient}: {col 34}apply a color gradient as the gradient for the second by variable.
     {cmd:colors(}{it:col1; col2; ...}{cmd:)} {col 34}provide a list of colors to replace standard palette. 
-    {col 34}Separate colors with semicolons. E.g. colors(dkgreen; cranberry; dknavy) or colors("234 40 100"; "128 0 128").
+    {col 34}Separate colors with semicolons. E.g. colors(dkgreen; cranberry; dknavy) or colors(234 40 100; 128 0 128).
     {cmd:lwidth(}{it:string}{cmd:)}: {col 34}specify line width.
     {cmd:*} {col 34}provide any twoway options to pass through to the call of the twoway command
     {col 34}see the example for why this might be useful. Can also be used to 
@@ -102,9 +102,21 @@ The data is collapsed to cell level, where each cell is defined by {it:byvar1} i
 {space 8}{hline 80}
 {space 8}{it:({stata cellgraph_run ex2 using cellgraph.sthlp, preserve:click to run})}
 
-{space 8}{hline 10} {it:Example 3 - Multiple Statistics one by variable, color gradient} {hline 10}
+{space 8}{hline 10} {it:Example 3 - One outcome variable, two by variables, manual RGBcolors} {hline 10}
 {cmd}{...}
 {* example_start - ex3}{...}
+          sysuse nlsw88, clear
+          gen logwage = log(wage) if grade>=8
+          label var logwage "Log Wage"
+          cellgraph logwage, by(grade union) colors(128 0 128; 0 128 128)
+{* example_end}{...}
+{txt}{...}
+{space 8}{hline 80}
+{space 8}{it:({stata cellgraph_run ex3 using cellgraph.sthlp, preserve:click to run})}
+
+{space 8}{hline 10} {it:Example 4 - Multiple Statistics one by variable, color gradient} {hline 10}
+{cmd}{...}
+{* example_start - ex4}{...}
           sysuse nlsw88, clear
           gen logwage = log(wage) if grade>=8
           label var logwage "Log Wage"
@@ -112,37 +124,38 @@ The data is collapsed to cell level, where each cell is defined by {it:byvar1} i
 {* example_end}{...}
 {txt}{...}
 {space 8}{hline 80}
-{space 8}{it:({stata cellgraph_run ex3 using cellgraph.sthlp,  preserve:click to run})}
+{space 8}{it:({stata cellgraph_run ex4 using cellgraph.sthlp,  preserve:click to run})}
 
-{space 8}{hline 10} {it:Example 4 - Two Outcomes, two statistics} {hline 10}
+
+{space 8}{hline 10} {it:Example 5 - Two Outcomes, two statistics} {hline 10}
 {cmd}{...}
-{* example_start - ex4}{...}
+{* example_start - ex5}{...}
           sysuse nlsw88, clear
           cellgraph wage hours if grade>=8 , by(grade) stat (mean median) mcounts ciopacity(20)
 {* example_end}{...}
 {txt}{...}
 {space 8}{hline 80}
-{space 8}{it:({stata cellgraph_run ex4 using cellgraph.sthlp,  preserve:click to run})}
+{space 8}{it:({stata cellgraph_run ex5 using cellgraph.sthlp,  preserve:click to run})}
 
-{space 8}{hline 10} {it:Example 5 - Binned Scatterplot with Linear Fit} {hline 10}
+{space 8}{hline 10} {it:Example 6 - Binned Scatterplot with Linear Fit} {hline 10}
 {cmd}{...}
-{* example_start - ex5}{...}
+{* example_start - ex6}{...}
           sysuse auto , clear
           cellgraph mpg, by(weight) binscatter(20) scatter noci lfit coef legend(off)
 {* example_end}{...}
 {txt}{...}
 {space 8}{hline 80}
-{space 8}{it:({stata cellgraph_run ex5 using cellgraph.sthlp,  preserve:click to run})}
+{space 8}{it:({stata cellgraph_run ex6 using cellgraph.sthlp,  preserve:click to run})}
 
-{space 8}{hline 10} {it:Example 6 - Binned Scatterplot with 2 Groups} {hline 10}
+{space 8}{hline 10} {it:Example 7 - Binned Scatterplot with 2 Groups} {hline 10}
 {cmd}{...}
-{* example_start - ex6}{...}
+{* example_start - ex7}{...}
           sysuse auto , clear
           cellgraph mpg, by(weight foreign) binscatter(20) scatter noci lfit coef 
 {* example_end}{...}
 {txt}{...}
 {space 8}{hline 80}
-{space 8}{it:({stata cellgraph_run ex6 using cellgraph.sthlp,  preserve:click to run})}
+{space 8}{it:({stata cellgraph_run ex7 using cellgraph.sthlp,  preserve:click to run})}
 
 
 {marker author}
