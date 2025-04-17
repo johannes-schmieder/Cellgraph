@@ -29,7 +29,7 @@
 
 */
 
-version 18.0
+version 12.0 // Note: this version is mostly tested with Stata 18
 capture program drop cellgraph
 program define cellgraph
 	syntax varlist [if] [in] [aweight fweight] , by(str) ///
@@ -77,6 +77,14 @@ program define cellgraph
 		ftools                  /// use ftools for data processing.
 		]
 
+	// Check Stata Version 
+	if `c(version)' < 18 {
+		di "Warning: This version of cellgraph is mostly tested with Stata 18"
+	}
+	if `c(version)' < 15 {
+		di in red "Warning: Shaded confidence intervals may not work properly in Stata versions below 15"
+	}
+
 	if "`colors'" == "" {
 		local colors  ///
 			dknavy; cranberry; dkgreen; edkblue; ///
@@ -118,9 +126,6 @@ program define cellgraph
 	__locallist `colors', name(colors)
 
 
-
-	// https://pinetools.com/gradient-generator
-
 	if "`lpattern'"=="lpattern" {
 		local lpattern_dum = 1
 	}
@@ -143,7 +148,7 @@ program define cellgraph
 	}
 	if "`cipattern'" == "" local cipattern "shaded"
 
-	marksample touse
+	marksample touse, novarlist
 
 	// Count the number of by variables and check if it is 1 or 2
 	local number_of_by_vars : word count `by'
@@ -361,6 +366,7 @@ program define cellgraph
 	if "`line'"!="" local graphcmd line
 
 	// Build graph command if there is only one by variable
+	local colors_original  "`colors'"
 	if `number_of_by_vars'==1 {
 		local notes ""Number of observations: `N'" "
 		if  "`stat'"=="mean" & "`noci'"=="" {
@@ -410,18 +416,6 @@ program define cellgraph
 
 				if "`lfit'"=="lfit" local order `order' `=`i'*`legend_order_jump''
 				else local order `order' `=`i++'*`legend_order_jump''
-
-				if "`coef'"=="coef" {
-					reg `v'_mean `by'
-					__localfmt coef_b = _b[`by'], digits(a2)
-					__localfmt coef_se = _se[`by'], digits(a2)
-					sum `v'_mean
-					local ymin = r(min)
-					local ymax = r(max)
-					sum `by'
-					local xmin = r(min)
-					local xmax = r(max)
-				}
 			}
 			if "`45deg'"=="45deg" {
 				local graphs `graphs' (line `by' `by' , lpattern("-") color(gray) )
@@ -462,22 +456,43 @@ program define cellgraph
 					// local legendlabel `legendlabel' label(`i' "`s'")
 					if "`lfit'"=="lfit" local order `order' `=`i'*2'
 					else local order `order' `=`i++'*1'
-
-					if "`coef'"=="coef" {
-						reg `v'_`s' `by'
-						__localfmt coef_b = _b[`by'], digits(a2)
-						__localfmt coef_se = _se[`by'], digits(a2)
-						sum `v'_`s'
-						local ymin = r(min)
-						local ymax = r(max)
-						sum `by'
-						local xmin = r(min)
-						local xmax = r(max)
-					}
 				}
 			}
 			if "`45deg'"=="45deg" {
 				local graphs `graphs' (line `by' `by' , lpattern("-") color(gray) )
+			}
+		}
+		// Add Regression Coefficient of Linear Fit to Graph / only for mean
+		if "`coef'"=="coef" & strpos("`stat'", "mean") > 0 {
+			local colors "`colors_original'"
+			
+			// Compute min and max across all variables in varlist
+			local ymin = .
+			local ymax = .
+			foreach v in `varlist' {
+				qui sum `v'_mean
+				if r(min) < `ymin' | `ymin' == . {
+					local ymin = r(min)
+				}
+				if r(max) > `ymax' | `ymax' == . {
+					local ymax = r(max)
+				}
+			}
+			sum `by'
+			local xmin = r(min)
+			local xmax = r(max)
+			local i 1
+			foreach v in `varlist' {
+				gettoken col colors:colors
+				reg `v'_mean `by'
+				__localfmt coef_b = _b[`by'], digits(a2)
+				__localfmt coef_se = _se[`by'], digits(a2)
+
+				local xpos = `xmin' + 0.85 * (`xmax' - `xmin')
+				if `coef_b' >0  local ypos =  `ymin' + (0.075 * `i') * (`ymax' - `ymin')
+				if `coef_b' <0  local ypos =  `ymin' + (0.95 - (0.075 * `i')) * (`ymax' - `ymin')
+				local txt `txt' text(`ypos' `xpos' "Slope: `coef_b' [`coef_se']", color("`col'"))
+				local i = `i' + 1
 			}
 		}
 	}
@@ -604,14 +619,7 @@ program define cellgraph
 			local figtitle `"`title1' by `cattit'"'
 		}
 	}
-	if `"`coef'"'=="coef" & `number_of_by_vars'==1 {
-		// local figtitle `"`figtitle', Slope: `coef_b' [`coef_se'] "'
 
-		local xpos = `xmin' + 0.85 * (`xmax' - `xmin')
-		if `coef_b' >0  local ypos =  `ymin' + 0.1 * (`ymax' - `ymin')
-		if `coef_b' <0  local ypos =  `ymin' + 0.85 * (`ymax' - `ymin')
-		local txt text(`ypos' `xpos' "Slope: `coef_b' [`coef_se'] ")
-	}
 
 	if `"`notitle'"'=="notitle" local figtitle ""
 
@@ -621,9 +629,14 @@ program define cellgraph
 	// if `"`subtitle'"' != "" {
 	// 	local subtitle subtitle(`"`subtitle'"', margin(small) size(small) )
 	// }
+	if `c(version)' < 18 {
+		local scheme scheme(s2mono)
+	}
+
+
 	twoway  ///
 		`graphs' ///
-		, /// scheme(s2mono) ///
+		, `scheme' ///
 		title(`"`figtitle'"', margin(small) size(small) ) /// box bexpand
 		`subtitle' ///
 		legend(order(`order') pos(6) ring(1) region(color(none) margin(zero)) cols(`legend_columns') ///

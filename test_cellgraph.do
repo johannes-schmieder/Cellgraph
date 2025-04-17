@@ -2,13 +2,14 @@
 // ===== Code to test cellgraph.ado =====
 // ================================================
 clear all
+set more off
 set seed 12345
 program drop _all
 graph drop _all
 
 do cellgraph.ado
  
-set trace on
+set trace off
 set tracedepth 1
 
 
@@ -81,12 +82,15 @@ sort person_id year
 
 // ====== Test Cellgraph ======
 
-set trace on  
-set tracedepth 1
-
 local i 100 
 
-cellgraph educ industry, by(year)
+g uniform = uniform()
+replace age = . if uniform < .5
+replace educ = . if uniform > .5
+cellgraph age educ, by(year) scatter coef lfit noci
+
+exit 
+cellgraph educ industry, by(year) 
 
 
 
