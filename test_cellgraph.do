@@ -9,7 +9,7 @@ graph drop _all
 
 do cellgraph.ado
  
-set trace off
+set trace on
 set tracedepth 1
 
 
@@ -87,8 +87,27 @@ local i 100
 g uniform = uniform()
 replace age = . if uniform < .5
 replace educ = . if uniform > .5
-cellgraph age educ, by(year) scatter coef lfit noci
+// cellgraph age educ, by(year) scatter coef lfit noci
+ 
 
+
+// An example with "omitted variable bias": wages are increasing in ESS within industry but industry 1 has low ESS and high wages.
+clear 
+set obs 1000 
+g industry = uniform()<.5
+g ess = uniform() * .5 
+
+local mu = 0.05
+local k  = 1
+local a  = `= `mu' * `k''
+local b  = `= (1-`mu') * `k''
+replace ess = rbeta(`a', `b') if industry == 1
+
+g wage = 1 + ess + rnormal(0, .1) + (industry == 1) * .7
+cellgraph wage, by(ess industry) scatter coef lfit noci binscatter(20) name(g`i++')
+cellgraph wage, by(ess ) scatter coef lfit noci binscatter(20) name(g`i++')
+cellgraph wage, by(ess ) scatter coef lfit noci binscatter(20) controls(i.industry) name(g`i++')
+cellgraph wage, by(ess industry) scatter coef lfit noci binscatter(20) controls(i.industry) name(g`i++')
 exit 
 cellgraph educ industry, by(year) 
 

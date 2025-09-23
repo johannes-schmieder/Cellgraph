@@ -58,6 +58,13 @@ The data is collapsed to cell level, where each cell is defined by {it:byvar1} i
     {cmd:cipattern(}{it:string}{cmd:)}: {col 34}specify confidence interval pattern, either 'shaded' or 'lines'.
     {cmd:ciopacity(}{it:integer}{cmd:)}: {col 34}specify the opacity for confidence intervals (0-100).
 
+  {ul: Controlling for covariates}
+    {cmd:controls(}{it:varlist}{cmd:)}: {col 34}partial out specified covariates before collapsing.
+    {col 34}Internally runs a regression of each outcome on {it:varlist} with
+    {col 34}fixed effects for the first {it:by} variable, then subtracts the
+    {col 34}fitted component due to the controls (mean-centered) so the plot
+    {col 34}reflects variation net of controls. Requires {help reghdfe}.
+
   {ul: Legend options}
     {cmd:addnotes}: {col 34}Add notes with sample sizes to the legend.
     {cmd:samplenotes(}{it:string}{cmd:)}: {col 34}add sample notes to the plot.

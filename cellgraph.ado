@@ -67,6 +67,8 @@ program define cellgraph
 		NOCI                    /// don't display confidence intervals.
 		cipattern(str)          /// specify confidence interval pattern, either 'shaded' or 'lines'.
 		ciopacity(integer 20)   /// specify the shading coefficient for confidence intervals.
+		/// === Controlling for covariates ===
+		controls(str)          /// specify controls to partialling out.
 		/// === Legend ===
 		addnotes                /// Add notes with sample sizes to the legend.
 		samplenotes(str)        /// add sample notes to the plot.
@@ -244,6 +246,7 @@ program define cellgraph
 	// Preserve the data
 	preserve
 	qui keep if `touse'
+
 	if `number_of_by_vars'==1 & `vc'==1 {
 		qui count if `varlist'!=. & `by' !=. & `touse'
 		local N = r(N)
@@ -273,6 +276,7 @@ program define cellgraph
 	}
 	if `number_of_by_vars'==1  & `bin'!=0 {
 		replace `by' = `by'-mod(`by',`bin')+`bin'*0.5
+		local `first_by_var' `by'
 	}
 	if `number_of_by_vars'==2  & `bin'!=0 {
 		local first_by_var : word 1 of `by'
@@ -293,6 +297,23 @@ program define cellgraph
 		bys `miss' `2' (`first_by_var'): gen `dum' = int(`binscatter'*(_n-1)/_N)+1
 		egen `binned' = mean(`first_by_var'), by(`dum' `2')
 		qui replace `first_by_var' = `binned'
+	}
+
+	// Controlling for covariates
+	if "`controls'"!="" {
+		local i 1
+		foreach v in `varlist' {
+			egen ctrl_byvar = group(`first_by_var')
+			reghdfe `v' `controls', absorb(ctrl_byvar, savefe ) resid
+			predict `v'_resid, residuals
+			predict `v'_fe, d
+			predict `v'_xb, xb 
+			sum `v'_xb
+			replace `v'_xb = `v'_xb - r(mean)
+			replace `v' = `v' - `v'_xb
+			// label var `v'_resid "Variance of `title`i''"
+			local i = `i' + 1
+		}
 	}
 
 	// Collapse the data
