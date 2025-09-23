@@ -168,9 +168,12 @@ program define cellgraph
 			disp in red "Second By-Variable may only take 60 or less distinct values"
 			error 198
 		}
+		replace `touse' = 0 if missing(`1')
+		replace `touse' = 0 if missing(`2')
 	}
 	else {
 		confirm variable `by'
+		replace `touse' = 0 if missing(`by')
 	}
 
 	// Calculate number of stats
