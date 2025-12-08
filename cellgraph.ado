@@ -162,7 +162,11 @@ program define cellgraph
 		tokenize `by'
 		confirm variable `1'
 		confirm variable `2'
-		qui tab `2' if `touse' & `2'<.
+		// Detect if first by-variable is string (needed for binning validation and baseline comparison)
+		local by1_is_string = 0
+		capture confirm string variable `1'
+		if !_rc local by1_is_string = 1
+		qui tab `2' if `touse' & !missing(`2')
 		local N_unique = r(r)
 		local steps = `N_unique'
 		cap assert r(r) <= 60
@@ -175,6 +179,10 @@ program define cellgraph
 	}
 	else {
 		confirm variable `by'
+		// Detect if by-variable is string (needed for binning validation and baseline comparison)
+		local by1_is_string = 0
+		capture confirm string variable `by'
+		if !_rc local by1_is_string = 1
 		replace `touse' = 0 if missing(`by')
 	}
 
@@ -247,15 +255,46 @@ program define cellgraph
 	preserve
 	qui keep if `touse'
 
+	// Capture original by-variable name/label before potential encoding
+	if `number_of_by_vars'==1 {
+		local by1_original_name `by'
+	}
+	else {
+		local by1_original_name `1'
+	}
+	local by1_original_label : variable label `by1_original_name'
+	if "`by1_original_label'"=="" local by1_original_label `by1_original_name'
+
+	// If first by-variable is string, encode it to numeric for plotting
+	if `by1_is_string' {
+		tempvar by1_encoded
+		if `number_of_by_vars'==1 {
+			encode `by', gen(`by1_encoded')
+			local by `by1_encoded'
+		}
+		else {
+			encode `1', gen(`by1_encoded')
+			local by `by1_encoded' `2'
+			local 1 `by1_encoded'
+		}
+		
+		// Build xlabel option with original string labels
+		local lblname : value label `by1_encoded'
+		qui levelsof `by1_encoded', local(by_values)
+		local xla ""
+		foreach val of local by_values {
+			local lbl : label `lblname' `val'
+			local xla `xla' `val' `"`lbl'"'
+		}
+	}
+
 	if `number_of_by_vars'==1 & `vc'==1 {
-		qui count if `varlist'!=. & `by' !=. & `touse'
+		qui count if !missing(`varlist') & !missing(`by') & `touse'
 		local N = r(N)
-		local cattit : variable label `by'
-		if "`cattit'"=="" local cattit `by'
+		local cattit `by1_original_label'
 	}
 	if `number_of_by_vars'==1 & `vc'>1 {
-		local cattit : variable label `by'
-		if "`cattit'"=="" local cattit `by'
+		local cattit `by1_original_label'
 	}
 
 	local clist
@@ -273,6 +312,11 @@ program define cellgraph
 	if `bin'!=0 & `binscatter'!=0 {
 		di in red "Options 'bin' and 'binscatter'"
 		error 184 // cannot be combined
+	}
+	// Binning requires numeric first by-variable
+	if (`bin'!=0 | `binscatter'!=0) & `by1_is_string' {
+		di as error "Options 'bin' and 'binscatter' require a numeric first by-variable"
+		error 198
 	}
 	if `number_of_by_vars'==1  & `bin'!=0 {
 		replace `by' = `by'-mod(`by',`bin')+`bin'*0.5
@@ -344,9 +388,28 @@ program define cellgraph
 
 	// Renormalize Variables to Baseline by subtracting the mean of the baseline category (mostly makes sense for log variables)
 	if `"`baseline'"'!=`""' & `number_of_by_vars'==1 {
+		// For encoded string variables, find the numeric code for the baseline string
+		if `by1_is_string' {
+			local baseline_code .
+			local lblname : value label `by'
+			qui levelsof `by', local(by_values)
+			foreach val of local by_values {
+				local lbl : label `lblname' `val'
+				if `"`lbl'"' == `"`baseline'"' {
+					local baseline_code `val'
+				}
+			}
+			if `baseline_code' == . {
+				di as error "Baseline value '`baseline'' not found in by-variable"
+				error 198
+			}
+		}
+		else {
+			local baseline_code `baseline'
+		}
 		foreach s in `stat' {
 			foreach v in `varlist' {
-				qui sum  `v'_`s' if  `by'==`baseline'
+				qui sum `v'_`s' if `by'==`baseline_code'
 				replace `v'_`s' = `v'_`s' - r(mean)
 				if "`s'"=="mean" {
 					replace `v'hi = `v'_`s' - r(mean)
@@ -356,11 +419,30 @@ program define cellgraph
 		}
 	}
 	if `"`baseline'"'!=`""' & `number_of_by_vars'==2 {
+		// For encoded string variables, find the numeric code for the baseline string
+		if `by1_is_string' {
+			local baseline_code .
+			local lblname : value label `1'
+			qui levelsof `1', local(by_values)
+			foreach val of local by_values {
+				local lbl : label `lblname' `val'
+				if `"`lbl'"' == `"`baseline'"' {
+					local baseline_code `val'
+				}
+			}
+			if `baseline_code' == . {
+				di as error "Baseline value '`baseline'' not found in first by-variable"
+				error 198
+			}
+		}
+		else {
+			local baseline_code `baseline'
+		}
 		foreach s in `stat' {
 			foreach v in `varlist' {
 				qui tab `2', gen(__dby2_)
 				forvalues i =1/`N_unique' {
-					qui sum  `v'_`s' if __dby2_`i'==1 & `1'==`baseline'
+					qui sum `v'_`s' if __dby2_`i'==1 & `1'==`baseline_code'
 					replace `v'_`s' = `v'_`s' - r(mean) if __dby2_`i'==1
 					if "`s'"=="mean" {
 						replace `v'hi = `v'_`s' - r(mean) if __dby2_`i'==1
@@ -523,15 +605,13 @@ program define cellgraph
 
 	// Build graph command if there are two by variables
 	if `number_of_by_vars'==2 { // go over categories of second by variable
+		qui tab `2', gen(__dby2_)
 		foreach v in `varlist' {
-			local cattit : variable label `1'
-			if "`cattit'"=="" local cattit `1'
+			local cattit `by1_original_label'
 			// Count observations in by groups:
 			tempvar N
 			g `N' = .
 			bys `2' `1': replace `N' = sum(obs`v')
-
-			qui tab `2', gen(__dby2_)
 			local coef_offset 0
 			forvalues i =1/`N_unique' {
 
@@ -674,7 +754,6 @@ program define cellgraph
 
 	if "`list'"!="" {
 		list `by' *`v'*  , clean noo div //  sum(obs`v') noo div
-		save ./export_cellgraph.dta, replace
 	}
 	restore
 

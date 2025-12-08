@@ -121,6 +121,16 @@ label values industry ind_label
 label define female_label 0 "Male" 1 "Female"
 label values female female_label
 
+// Generate string variables for string by-var tests
+gen str10 gender_str = "Male" if female == 0
+replace gender_str = "Female" if female == 1
+gen str20 industry_str = ""
+replace industry_str = "Manufacturing" if industry == 1
+replace industry_str = "Services" if industry == 2
+replace industry_str = "Retail" if industry == 3
+replace industry_str = "Technology" if industry == 4
+replace industry_str = "Finance" if industry == 5
+
 sort person_id year
 tempfile panel_data
 save `panel_data'
@@ -539,6 +549,44 @@ run_test, name("P4: Normalized to baseline") ///
 run_test, name("P5: Line plot no markers") ///
     cmd(cellgraph wage, by(year female) line nomsymbol lpattern ///
         colors(navy; maroon) noci)
+
+// ============================================================
+// Q. STRING BY-VARIABLE TESTS
+// ============================================================
+di _n as txt "=== Q. String By-Variable Tests ===" _n
+
+run_test, name("Q1: Single string by-var") ///
+    cmd(cellgraph wage, by(gender_str) noci)
+
+run_test, name("Q2: String by-var with CI") ///
+    cmd(cellgraph wage, by(gender_str))
+
+run_test, name("Q3: Two by-vars, first numeric second string") ///
+    cmd(cellgraph wage, by(year gender_str) noci)
+
+run_test, name("Q4: Two by-vars, first string second numeric") ///
+    cmd(cellgraph wage, by(industry_str female) noci)
+
+run_test, name("Q5: Two string by-vars") ///
+    cmd(cellgraph wage, by(industry_str gender_str) noci)
+
+run_test, name("Q6: String by-var with multiple outcomes") ///
+    cmd(cellgraph wage hours, by(gender_str) noci)
+
+run_test, name("Q7: String by-var with statistics") ///
+    cmd(cellgraph wage, by(gender_str) stat(p25 p50 p75))
+
+run_test, name("Q8: String by-var with binscatter") ///
+    cmd(cellgraph wage, by(age gender_str) binscatter(10) noci)
+
+run_test, name("Q9: String by-var with baseline") ///
+    cmd(cellgraph wage, by(industry_str) noci)
+
+run_test, name("Q10: Binscatter with string first by-var should error") ///
+    cmd(cellgraph wage, by(gender_str) binscatter(10) noci) expect_error
+
+run_test, name("Q11: Bin with string first by-var should error") ///
+    cmd(cellgraph wage, by(gender_str) bin(1) noci) expect_error
 
 // ============================================================
 // SUMMARY
