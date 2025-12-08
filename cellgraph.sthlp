@@ -75,6 +75,14 @@ The data is collapsed to cell level, where each cell is defined by {it:byvar1} i
     {cmd:gtools}: {col 34}use gtools for data processing.
     {cmd:ftools}: {col 34}use ftools for data processing.
 
+  {ul: Category Ordering}
+    {cmd:xorder(}{it:varname}{cmd:)}: {col 34}order categories of first by-variable by mean of {it:varname}.
+    {col 34}Only works with categorical by-variables (string or with value labels).
+    {col 34}Suboptions:
+    {col 34}  {cmd:descending} - sort in descending order (highest first)
+    {col 34}  {cmd:stat(}{it:statname}{cmd:)} - use specified statistic instead of mean
+    {col 34}Example: {cmd:xorder(wage, descending stat(median))}
+
   {hline 70}
 
 
@@ -158,11 +166,21 @@ The data is collapsed to cell level, where each cell is defined by {it:byvar1} i
 {cmd}{...}
 {* example_start - ex7}{...}
           sysuse auto , clear
-          cellgraph mpg, by(weight foreign) binscatter(20) scatter noci lfit coef 
+          cellgraph mpg, by(weight foreign) binscatter(20) scatter noci lfit coef
 {* example_end}{...}
 {txt}{...}
 {space 8}{hline 80}
 {space 8}{it:({stata cellgraph_run ex7 using cellgraph.sthlp,  preserve:click to run})}
+
+{space 8}{hline 10} {it:Example 8 - Ordering Categories by Outcome Variable} {hline 10}
+{cmd}{...}
+{* example_start - ex8}{...}
+          sysuse nlsw88, clear
+          cellgraph wage, by(occupation) xorder(wage, descending)
+{* example_end}{...}
+{txt}{...}
+{space 8}{hline 80}
+{space 8}{it:({stata cellgraph_run ex8 using cellgraph.sthlp,  preserve:click to run})}
 
 
 {marker author}

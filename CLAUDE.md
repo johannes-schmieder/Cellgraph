@@ -59,3 +59,9 @@ cellgraph_run ex1 using cellgraph.sthlp, preserve
 
 - `reghdfe` - Required only when using `controls()` option
 - `gtools` / `ftools` - Optional performance optimization for collapse step
+
+## Planning New Features
+When I ask to plan a feature:
+1. Create a plan document in /plans/
+2. Wait for my approval before making code changes
+3. Break down into reviewable chunks

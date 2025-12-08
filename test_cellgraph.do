@@ -589,6 +589,44 @@ run_test, name("Q11: Bin with string first by-var should error") ///
     cmd(cellgraph wage, by(gender_str) bin(1) noci) expect_error
 
 // ============================================================
+// R. XORDER OPTION TESTS
+// ============================================================
+di _n as txt "=== R. Xorder Option Tests ===" _n
+
+run_test, name("R1: Basic xorder with labeled by-var") ///
+    cmd(cellgraph wage, by(industry) xorder(wage) noci)
+
+run_test, name("R2: xorder descending") ///
+    cmd(cellgraph wage, by(industry) xorder(wage, descending) noci)
+
+run_test, name("R3: xorder with stat(median)") ///
+    cmd(cellgraph wage, by(industry) xorder(wage, stat(median)) noci)
+
+run_test, name("R4: xorder with stat(p75)") ///
+    cmd(cellgraph wage, by(industry) xorder(wage, stat(p75)) noci)
+
+run_test, name("R5: xorder descending with stat") ///
+    cmd(cellgraph wage, by(industry) xorder(wage, descending stat(median)) noci)
+
+run_test, name("R6: xorder with string by-var") ///
+    cmd(cellgraph wage, by(industry_str) xorder(wage) noci)
+
+run_test, name("R7: xorder string by-var descending") ///
+    cmd(cellgraph wage, by(industry_str) xorder(wage, descending) noci)
+
+run_test, name("R8: xorder with two by-vars") ///
+    cmd(cellgraph wage, by(industry female) xorder(wage) noci)
+
+run_test, name("R9: xorder with different variable than outcome") ///
+    cmd(cellgraph wage, by(industry) xorder(hours) noci)
+
+run_test, name("R10: xorder with CI") ///
+    cmd(cellgraph wage, by(industry) xorder(wage))
+
+run_test, name("R11: xorder with non-categorical by-var should error") ///
+    cmd(cellgraph wage, by(age) xorder(wage) noci) expect_error
+
+// ============================================================
 // SUMMARY
 // ============================================================
 di _n as txt "========================================"

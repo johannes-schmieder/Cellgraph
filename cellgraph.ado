@@ -77,6 +77,8 @@ program define cellgraph
 		/// === Computational Tools ===
 		gtools                  /// use gtools for data processing.
 		ftools                  /// use ftools for data processing.
+		/// === Category ordering ===
+		xorder(str asis)        /// order categories by mean of specified variable. Suboptions: descending, stat(statname).
 		]
 
 	// Check Stata Version 
@@ -149,6 +151,34 @@ program define cellgraph
 		error 198
 	}
 	if "`cipattern'" == "" local cipattern "shaded"
+
+	// Parse xorder option
+	local xorder_var ""
+	local xorder_desc = 0
+	local xorder_stat "mean"
+	if `"`xorder'"' != "" {
+		// Parse the xorder option: varname [, descending stat(statname)]
+		gettoken xorder_var xorder_opts : xorder, parse(",")
+		local xorder_var = strtrim("`xorder_var'")
+
+		// Check for suboptions
+		if `"`xorder_opts'"' != "" {
+			local xorder_opts = subinstr(`"`xorder_opts'"', ",", "", 1)
+			local 0 , `xorder_opts'
+			// Save varlist and stat before parsing (syntax will overwrite them)
+			local __save_varlist "`varlist'"
+			local __save_stat "`stat'"
+			syntax , [Descending Stat(str)]
+			if "`descending'" == "descending" local xorder_desc = 1
+			if "`stat'" != "" local xorder_stat "`stat'"
+			// Restore varlist and stat
+			local varlist "`__save_varlist'"
+			local stat "`__save_stat'"
+		}
+
+		// Confirm the xorder variable exists
+		confirm variable `xorder_var'
+	}
 
 	marksample touse, novarlist
 
@@ -277,7 +307,7 @@ program define cellgraph
 			local by `by1_encoded' `2'
 			local 1 `by1_encoded'
 		}
-		
+
 		// Build xlabel option with original string labels
 		local lblname : value label `by1_encoded'
 		qui levelsof `by1_encoded', local(by_values)
@@ -286,6 +316,50 @@ program define cellgraph
 			local lbl : label `lblname' `val'
 			local xla `xla' `val' `"`lbl'"'
 		}
+	}
+	else {
+		// Check if numeric by-variable has value labels (e.g., already encoded)
+		if `number_of_by_vars'==1 {
+			local lblname : value label `by'
+		}
+		else {
+			local lblname : value label `1'
+		}
+		if "`lblname'" != "" {
+			// Build xlabel option with value labels
+			if `number_of_by_vars'==1 {
+				qui levelsof `by', local(by_values)
+			}
+			else {
+				qui levelsof `1', local(by_values)
+			}
+			local xla ""
+			foreach val of local by_values {
+				local lbl : label `lblname' `val'
+				local xla `xla' `val' `"`lbl'"'
+			}
+		}
+	}
+
+	// Validate xorder option requires categorical x-variable
+	if "`xorder_var'" != "" & `"`xla'"' == "" {
+		di as error "Option xorder() requires a categorical first by-variable (string or with value labels)"
+		error 198
+	}
+
+	// Calculate x-axis padding if value labels are present to prevent label cutoff
+	local xscale_opt ""
+	if `"`xla'"' != "" {
+		if `number_of_by_vars'==1 {
+			qui sum `by'
+		}
+		else {
+			qui sum `1'
+		}
+		local xmin = r(min)
+		local xmax = r(max)
+		local xpad = (`xmax' - `xmin') * 0.05
+		local xscale_opt xscale(range(`=`xmin'-`xpad'' `=`xmax'+`xpad''))
 	}
 
 	if `number_of_by_vars'==1 & `vc'==1 {
@@ -305,6 +379,21 @@ program define cellgraph
 			else {
 				local clist `clist' (sd) `v'_`s'=`v'
 			}
+		}
+	}
+
+	// Add xorder variable to collapse if specified and not already in varlist
+	if "`xorder_var'" != "" {
+		local xorder_in_varlist = 0
+		foreach v in `varlist' {
+			if "`v'" == "`xorder_var'" local xorder_in_varlist = 1
+		}
+		if !`xorder_in_varlist' {
+			local clist `clist' (`xorder_stat') __xorder_sortvar=`xorder_var'
+		}
+		else {
+			// xorder variable is in varlist, use its computed statistic
+			local __xorder_use_existing = 1
 		}
 	}
 
@@ -452,6 +541,71 @@ program define cellgraph
 				drop __dby2_*
 			}
 		}
+	}
+
+	// Apply xorder sorting and create rank variable for categorical x-axis
+	if "`xorder_var'" != "" {
+		// Determine which variable to sort by
+		if "`__xorder_use_existing'" == "1" {
+			// Use the first stat of the xorder variable from varlist
+			local xorder_sortby `xorder_var'_`=word("`stat'", 1)'
+		}
+		else {
+			local xorder_sortby __xorder_sortvar
+		}
+
+		// Sort the collapsed data
+		if `xorder_desc' {
+			gsort -`xorder_sortby'
+		}
+		else {
+			sort `xorder_sortby'
+		}
+
+		// Generate rank variable
+		gen __xrank = _n
+
+		// Rebuild xla mapping ranks to original category labels
+		local xla ""
+		if `number_of_by_vars'==1 {
+			local lblname : value label `by'
+			forval i = 1/`=_N' {
+				if "`lblname'" != "" {
+					local orig_val = `by'[`i']
+					local lbl : label `lblname' `orig_val'
+				}
+				else {
+					local lbl = `by'[`i']
+				}
+				local xla `xla' `i' `"`lbl'"'
+			}
+			// Replace by variable with rank for plotting
+			drop `by'
+			rename __xrank `by'
+		}
+		else {
+			local lblname : value label `1'
+			forval i = 1/`=_N' {
+				if "`lblname'" != "" {
+					local orig_val = `1'[`i']
+					local lbl : label `lblname' `orig_val'
+				}
+				else {
+					local lbl = `1'[`i']
+				}
+				local xla `xla' `i' `"`lbl'"'
+			}
+			// Replace first by variable with rank for plotting
+			drop `1'
+			rename __xrank `1'
+		}
+
+		// Recalculate x-axis padding for new rank-based positions
+		local xmin = 1
+		local xmax = _N
+		local xpad = (`xmax' - `xmin') * 0.05
+		if `xpad' < 0.5 local xpad = 0.5
+		local xscale_opt xscale(range(`=`xmin'-`xpad'' `=`xmax'+`xpad''))
 	}
 
 	// Create labels for observation counts for each outcome variable and count the number of outcome variables
@@ -748,7 +902,7 @@ program define cellgraph
 		`legendlabel') ///
 		legend(note(`notes' , ///
 		size(vsmall) pos(4) ring(1) justification(right) xoffset(0))) ///
-		xtitle(`"`cattit'"') xlabel(`xla', labsize(medsmall)) ylabel(,labsize(medsmall)) ///
+		xtitle(`"`cattit'"') xlabel(`xla', labsize(medsmall)) `xscale_opt' ylabel(,labsize(medsmall)) ///
 		ysize(7.5) xsize(10) graphr(color(white)) `nameopt' `options' ///
 		`ytitle' `txt'
 
