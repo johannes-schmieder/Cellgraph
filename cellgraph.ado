@@ -29,7 +29,7 @@
 
 */
 
-version 12.0 // Note: this version is mostly tested with Stata 18
+version 14.0
 capture program drop cellgraph
 program define cellgraph
 	syntax varlist [if] [in] [aweight fweight] , by(str) ///
@@ -950,7 +950,12 @@ program define cellgraph
 		`ytitle' `txt'
 
 	if "`list'"!="" {
-		list `by' *`v'*  , clean noo div //  sum(obs`v') noo div
+		// Build pattern to match all outcome variables (not just last one)
+		local list_vars ""
+		foreach v in `varlist' {
+			local list_vars `list_vars' *`v'*
+		}
+		list `by' `list_vars', clean noo div
 	}
 
 	// Save collapsed data if requested

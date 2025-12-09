@@ -3,7 +3,7 @@
 **Review Date:** 2025-12-08
 **Reviewer:** Claude Code
 **Version Reviewed:** Current main branch (commit ebbb239)
-**Last Updated:** 2025-12-08 (after bug fixes)
+**Last Updated:** 2025-12-08 (after bug fixes and test additions)
 
 ---
 
@@ -31,21 +31,17 @@ The two-by-variable and one-by-variable graph construction paths (lines 669-797 
 
 ## 3. Testing Gaps
 
-### Not tested
-- `gtools` and `ftools` options (require those packages)
-- Very long category labels causing layout issues
-- Interaction of `baseline()` with `xorder()`
-- `lfit coef` with non-mean statistics (currently silently fails at line 765)
-- Unicode characters in labels
-- Extreme `ciopacity` values (0, 100, negative)
+All previously identified testing gaps have been addressed with new test sections U-AA:
 
-### Data verification tests (T1-T5) and new tests (I5-I6, K5)
-These are excellent additions. Now verifying:
-- ✓ The `baseline()` transformation (I5, I6)
-- ✓ `controls()` basic functionality (K5)
-- Could also verify: `controls()` residualization details, weighted statistics match manual weighted collapse
+- ✓ `gtools` and `ftools` options (U1-U5, conditional on package availability)
+- ✓ Very long category labels (V1-V4)
+- ✓ Interaction of `baseline()` with `xorder()` (W1-W4, including data verification)
+- ✓ `lfit coef` with non-mean statistics (X1-X4)
+- ✓ Unicode characters in labels (Y1-Y5: German umlauts, Spanish accents, special chars)
+- ✓ Extreme `ciopacity` values (Z1-Z6: 0, 1, 99, 100, negative, >100)
+- ✓ Weighted statistics verification (AA1-AA3: aweights and fweights match manual collapse)
 
-### Test harness improvement suggestion
+### Test harness improvement suggestion (deferred)
 ```stata
 // Current: run_test just checks pass/fail
 // Better: capture actual output and compare expected values
@@ -109,18 +105,14 @@ return local by_vars "`by'"
 
 ## 7. Minor Issues
 
-### Line 962 - Only shows last variable in varlist
-```stata
-list `by' *`v'*  // `v' is only the last var from the foreach loop
-```
-Should likely be `*wage* *hours*` etc for multiple outcomes.
+### ~~Line 962 - Only shows last variable in varlist~~ ✓ FIXED
+The `list` command now iterates over all variables in `varlist` to show all outcome variables.
 
-### Inefficient levelsof calls
-Lines 352, 370, 523, 554 call `levelsof` but the values are already available from earlier `tab` calls.
+### Inefficient levelsof calls (deferred)
+Lines 346, 364, 367, 514, 545 call `levelsof` in different code paths. While these could theoretically reuse values from earlier `tab` calls, refactoring would require significant changes across multiple conditional branches. The performance impact is minimal.
 
-### Version compatibility claims
-- Header says version 12.0, `.pkg` says Stata 14+, comments say "mostly tested with Stata 18"
-- Consider either properly testing on Stata 14-17 or bumping minimum version
+### ~~Version compatibility claims~~ ✓ FIXED
+Header now says `version 14.0`, matching the `.pkg` file requirement.
 
 ---
 
@@ -144,11 +136,17 @@ If a cell has only 1 observation, CI calculation will produce missing values. Co
 
 | Priority | Issue | Location |
 |----------|-------|----------|
-| :yellow_circle: Medium | `list` only shows last var | Line 958 |
 | :green_circle: Low | Refactor duplicate graph code | Lines 665-890 |
+| :green_circle: Low | Inefficient levelsof calls | Various (minor perf) |
 
 ---
 
 ## Conclusion
 
-This is a solid package with comprehensive testing (137 tests, all passing). The two high-priority bugs (baseline CI normalization and `controls()` undefined variable) have been fixed and verified with new tests (I5, I6, K5). Dead code in the binning section has also been cleaned up. The remaining issues are medium/low priority improvements that would benefit the codebase but do not affect core functionality.
+This is a solid package with comprehensive testing (160+ tests, all passing). Key accomplishments:
+- ✓ Fixed high-priority bugs (baseline CI normalization, `controls()` undefined variable)
+- ✓ Fixed `list` command to show all outcome variables
+- ✓ Aligned version compatibility (now correctly states Stata 14+)
+- ✓ Added extensive test coverage for previously untested edge cases (gtools/ftools, long labels, baseline+xorder, Unicode, extreme ciopacity, weighted stats)
+
+The remaining issues are low-priority architectural improvements that would benefit maintainability but do not affect functionality.

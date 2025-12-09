@@ -383,6 +383,81 @@ run_test, name("I3: Baseline middle value") ///
 run_test, name("I4: Baseline with noci") ///
     cmd(cellgraph wage, by(year) baseline(2000) noci)
 
+// I5-I6: Verify baseline normalization preserves CI width
+di as txt "I5: Verifying baseline CI width preservation (single by-var)..."
+tempfile i5_before i5_after
+
+// Get CI width before baseline
+cellgraph wage, by(year) saving(`i5_before', replace)
+
+// Get CI width after baseline
+cellgraph wage, by(year) baseline(2000) saving(`i5_after', replace)
+
+// Compare CI widths
+use `i5_before', clear
+gen ci_width_before = wagehi - wagelo
+keep year ci_width_before
+tempfile i5_widths
+save `i5_widths', replace
+
+use `i5_after', clear
+gen ci_width_after = wagehi - wagelo
+merge 1:1 year using `i5_widths', nogen
+
+capture {
+    gen width_diff = abs(ci_width_before - ci_width_after)
+    assert width_diff < 1e-10 | missing(width_diff)
+}
+if _rc == 0 {
+    di as result "PASS: I5: Baseline CI width preserved (single by-var)"
+    global pass_count = $pass_count + 1
+}
+else {
+    di as error "FAIL: I5: Baseline CI width not preserved (single by-var)"
+    global fail_count = $fail_count + 1
+}
+global test_count = $test_count + 1
+
+// Reload test data
+use `panel_data', clear
+
+di as txt "I6: Verifying baseline CI width preservation (two by-vars)..."
+tempfile i6_before i6_after
+
+// Get CI width before baseline
+cellgraph wage, by(year female) saving(`i6_before', replace)
+
+// Get CI width after baseline
+cellgraph wage, by(year female) baseline(2000) saving(`i6_after', replace)
+
+// Compare CI widths
+use `i6_before', clear
+gen ci_width_before = wagehi - wagelo
+keep year female ci_width_before
+tempfile i6_widths
+save `i6_widths', replace
+
+use `i6_after', clear
+gen ci_width_after = wagehi - wagelo
+merge 1:1 year female using `i6_widths', nogen
+
+capture {
+    gen width_diff = abs(ci_width_before - ci_width_after)
+    assert width_diff < 1e-10 | missing(width_diff)
+}
+if _rc == 0 {
+    di as result "PASS: I6: Baseline CI width preserved (two by-vars)"
+    global pass_count = $pass_count + 1
+}
+else {
+    di as error "FAIL: I6: Baseline CI width not preserved (two by-vars)"
+    global fail_count = $fail_count + 1
+}
+global test_count = $test_count + 1
+
+// Reload test data
+use `panel_data', clear
+
 // ============================================================
 // J. TITLE AND LEGEND OPTIONS TESTS
 // ============================================================
@@ -434,9 +509,12 @@ if _rc == 0 {
 
     run_test, name("K4: Controls with binscatter") ///
         cmd(cellgraph wage, by(age) controls(i.industry) binscatter(20) noci)
+
+    run_test, name("K5: Controls with single by-var, no binning") ///
+        cmd(cellgraph wage, by(year) controls(age) noci)
 }
 else {
-    di as txt "SKIP: K1-K4 (reghdfe not installed)"
+    di as txt "SKIP: K1-K5 (reghdfe not installed)"
 }
 
 // ============================================================
@@ -846,6 +924,305 @@ if _rc == 0 {
 }
 else {
     di as error "FAIL: T5: String by-variable data mismatch"
+    global fail_count = $fail_count + 1
+}
+global test_count = $test_count + 1
+
+// Reload test data for any subsequent tests
+use `panel_data', clear
+
+// ============================================================
+// U. GTOOLS/FTOOLS OPTIONS TESTS (require those packages)
+// ============================================================
+di _n as txt "=== U. Gtools/Ftools Options ===" _n
+
+// Test gtools if available
+capture which gtools
+if _rc == 0 {
+    run_test, name("U1: gtools option for collapse") ///
+        cmd(cellgraph wage, by(year) gtools noci)
+
+    run_test, name("U2: gtools with two by-vars") ///
+        cmd(cellgraph wage, by(year female) gtools noci)
+
+    run_test, name("U3: gtools with binscatter") ///
+        cmd(cellgraph wage, by(age) binscatter(20) gtools noci)
+}
+else {
+    di as txt "SKIP: U1-U3 (gtools not installed)"
+}
+
+// Test ftools if available
+capture which ftools
+if _rc == 0 {
+    run_test, name("U4: ftools option for collapse") ///
+        cmd(cellgraph wage, by(year) ftools noci)
+
+    run_test, name("U5: ftools with two by-vars") ///
+        cmd(cellgraph wage, by(year female) ftools noci)
+}
+else {
+    di as txt "SKIP: U4-U5 (ftools not installed)"
+}
+
+// ============================================================
+// V. LONG CATEGORY LABELS TESTS
+// ============================================================
+di _n as txt "=== V. Long Category Labels ===" _n
+
+// Create long labels
+preserve
+label define long_ind_label ///
+    1 "Manufacturing and Industrial Production Sector" ///
+    2 "Professional Services and Business Consulting" ///
+    3 "Retail Sales and Consumer Distribution" ///
+    4 "Technology and Information Systems" ///
+    5 "Finance, Banking and Investment Services"
+label values industry long_ind_label
+
+run_test, name("V1: Long category labels single by-var") ///
+    cmd(cellgraph wage, by(industry) noci)
+
+run_test, name("V2: Long category labels two by-vars") ///
+    cmd(cellgraph wage, by(industry female) noci)
+
+run_test, name("V3: Long labels with xorder") ///
+    cmd(cellgraph wage, by(industry) xorder(wage) noci)
+
+restore
+
+// Very long string by-variable labels
+preserve
+replace industry_str = "Manufacturing and Industrial Production With Very Long Name" if industry == 1
+replace industry_str = "Professional Services and Business Consulting Extended" if industry == 2
+
+run_test, name("V4: Very long string by-var labels") ///
+    cmd(cellgraph wage, by(industry_str) noci)
+
+restore
+
+// ============================================================
+// W. BASELINE WITH XORDER INTERACTION TESTS
+// ============================================================
+di _n as txt "=== W. Baseline with Xorder Interaction ===" _n
+
+run_test, name("W1: baseline with xorder") ///
+    cmd(cellgraph wage, by(industry) baseline(1) xorder(wage) noci)
+
+run_test, name("W2: baseline with xorder descending") ///
+    cmd(cellgraph wage, by(industry) baseline(1) xorder(wage, descending) noci)
+
+run_test, name("W3: baseline with xorder and stat(median)") ///
+    cmd(cellgraph wage, by(industry) baseline(1) xorder(wage, stat(median)) noci)
+
+// Verify the interaction produces correct results
+di as txt "W4: Verifying baseline + xorder data integrity..."
+tempfile w4_saved
+cellgraph wage, by(industry) baseline(1) xorder(wage) saving(`w4_saved', replace) noci
+
+use `w4_saved', clear
+capture {
+    // The baseline (first industry after sorting) should have mean = 0
+    // (since baseline normalizes to the baseline value)
+    sort industry
+    local first_mean = wage_mean[1]
+    assert abs(`first_mean') < 1e-10
+}
+if _rc == 0 {
+    di as result "PASS: W4: baseline + xorder produces correct normalized values"
+    global pass_count = $pass_count + 1
+}
+else {
+    di as error "FAIL: W4: baseline + xorder data verification"
+    global fail_count = $fail_count + 1
+}
+global test_count = $test_count + 1
+
+// Reload test data
+use `panel_data', clear
+
+// ============================================================
+// X. LFIT COEF WITH NON-MEAN STATISTICS TESTS
+// ============================================================
+di _n as txt "=== X. Lfit Coef with Non-Mean Statistics ===" _n
+
+// These should either work correctly or produce a helpful error
+run_test, name("X1: lfit coef with stat(median)") ///
+    cmd(cellgraph wage, by(year) stat(median) lfit coef noci)
+
+run_test, name("X2: lfit coef with stat(p50)") ///
+    cmd(cellgraph wage, by(year) stat(p50) lfit coef noci)
+
+run_test, name("X3: lfit coef with stat(sd)") ///
+    cmd(cellgraph wage, by(year) stat(sd) lfit coef noci)
+
+run_test, name("X4: lfit with non-mean (no coef)") ///
+    cmd(cellgraph wage, by(year) stat(median) lfit noci)
+
+// ============================================================
+// Y. UNICODE CHARACTERS IN LABELS TESTS
+// ============================================================
+di _n as txt "=== Y. Unicode Characters in Labels ===" _n
+
+preserve
+// Create unicode labels
+label define unicode_label 0 "Männlich" 1 "Weiblich"
+label values female unicode_label
+
+run_test, name("Y1: German umlauts in value labels") ///
+    cmd(cellgraph wage, by(female) noci)
+
+run_test, name("Y2: Unicode labels with two by-vars") ///
+    cmd(cellgraph wage, by(year female) noci)
+
+restore
+
+preserve
+// Test with accented characters
+label define accent_label ///
+    1 "Fabricación" ///
+    2 "Servicios" ///
+    3 "Comercio minorista" ///
+    4 "Tecnología" ///
+    5 "Finanzas"
+label values industry accent_label
+
+run_test, name("Y3: Spanish accents in labels") ///
+    cmd(cellgraph wage, by(industry) noci)
+
+run_test, name("Y4: Accented labels with xorder") ///
+    cmd(cellgraph wage, by(industry) xorder(wage) noci)
+
+restore
+
+preserve
+// Test with special characters
+gen str30 special_str = "Category A™" if female == 0
+replace special_str = "Category B®" if female == 1
+
+run_test, name("Y5: Special characters in string by-var") ///
+    cmd(cellgraph wage, by(special_str) noci)
+
+restore
+
+// ============================================================
+// Z. EXTREME CIOPACITY VALUES TESTS
+// ============================================================
+di _n as txt "=== Z. Extreme Ciopacity Values ===" _n
+
+run_test, name("Z1: ciopacity(0) - fully transparent") ///
+    cmd(cellgraph wage, by(year) ciopacity(0))
+
+run_test, name("Z2: ciopacity(100) - fully opaque") ///
+    cmd(cellgraph wage, by(year) ciopacity(100))
+
+run_test, name("Z3: ciopacity(1) - near transparent") ///
+    cmd(cellgraph wage, by(year) ciopacity(1))
+
+run_test, name("Z4: ciopacity(99) - near opaque") ///
+    cmd(cellgraph wage, by(year) ciopacity(99))
+
+// Negative should error (or be handled gracefully)
+run_test, name("Z5: ciopacity negative should error") ///
+    cmd(cellgraph wage, by(year) ciopacity(-10)) expect_error
+
+// Very large should error (or be clamped)
+run_test, name("Z6: ciopacity >100 should error") ///
+    cmd(cellgraph wage, by(year) ciopacity(150)) expect_error
+
+// ============================================================
+// AA. WEIGHTED STATISTICS VERIFICATION TESTS
+// ============================================================
+di _n as txt "=== AA. Weighted Statistics Verification ===" _n
+
+// AA1: Verify weighted mean matches manual calculation
+di as txt "AA1: Verifying weighted mean matches manual collapse..."
+tempfile aa1_saved aa1_manual
+
+// Run cellgraph with weights
+cellgraph wage [aweight=wgt], by(female) saving(`aa1_saved', replace) noci
+
+// Manual weighted collapse
+collapse (mean) manual_mean=wage [aweight=wgt], by(female)
+save `aa1_manual', replace
+
+// Load saved and merge
+use `aa1_saved', clear
+merge 1:1 female using `aa1_manual', nogen
+
+capture {
+    gen diff_mean = abs(wage_mean - manual_mean)
+    assert diff_mean < 1e-6 | missing(diff_mean)
+}
+if _rc == 0 {
+    di as result "PASS: AA1: Weighted mean matches manual collapse"
+    global pass_count = $pass_count + 1
+}
+else {
+    di as error "FAIL: AA1: Weighted mean does not match manual collapse"
+    global fail_count = $fail_count + 1
+}
+global test_count = $test_count + 1
+
+// Reload test data
+use `panel_data', clear
+
+// AA2: Verify weighted statistics with two by-variables
+di as txt "AA2: Verifying weighted statistics with two by-vars..."
+tempfile aa2_saved aa2_manual
+
+cellgraph wage [aweight=wgt], by(year female) saving(`aa2_saved', replace) noci
+
+// Manual weighted collapse
+collapse (mean) manual_mean=wage [aweight=wgt], by(year female)
+save `aa2_manual', replace
+
+use `aa2_saved', clear
+merge 1:1 year female using `aa2_manual', nogen
+
+capture {
+    gen diff_mean = abs(wage_mean - manual_mean)
+    assert diff_mean < 1e-6 | missing(diff_mean)
+}
+if _rc == 0 {
+    di as result "PASS: AA2: Weighted stats with two by-vars match"
+    global pass_count = $pass_count + 1
+}
+else {
+    di as error "FAIL: AA2: Weighted stats with two by-vars mismatch"
+    global fail_count = $fail_count + 1
+}
+global test_count = $test_count + 1
+
+// Reload test data
+use `panel_data', clear
+
+// AA3: Verify frequency weights
+di as txt "AA3: Verifying frequency weights..."
+tempfile aa3_saved aa3_manual
+
+// Need integer weights for fweight
+gen int fwgt = round(wgt * 10)
+
+cellgraph wage [fweight=fwgt], by(female) saving(`aa3_saved', replace) noci
+
+// Manual fweight collapse
+collapse (mean) manual_mean=wage [fweight=fwgt], by(female)
+save `aa3_manual', replace
+
+use `aa3_saved', clear
+merge 1:1 female using `aa3_manual', nogen
+
+capture {
+    gen diff_mean = abs(wage_mean - manual_mean)
+    assert diff_mean < 1e-6 | missing(diff_mean)
+}
+if _rc == 0 {
+    di as result "PASS: AA3: Frequency weighted mean matches manual collapse"
+    global pass_count = $pass_count + 1
+}
+else {
+    di as error "FAIL: AA3: Frequency weighted mean does not match"
     global fail_count = $fail_count + 1
 }
 global test_count = $test_count + 1
