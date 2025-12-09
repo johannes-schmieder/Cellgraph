@@ -28,19 +28,6 @@ The two-by-variable and one-by-variable graph construction paths (lines 669-797 
 - Line 709, 744-746: `0.85`, `0.075`, `0.95` for text positioning
 
 ---
-
-## 3. Testing Gaps
-
-All previously identified testing gaps have been addressed with new test sections U-AA:
-
-- ✓ `gtools` and `ftools` options (U1-U5, conditional on package availability)
-- ✓ Very long category labels (V1-V4)
-- ✓ Interaction of `baseline()` with `xorder()` (W1-W4, including data verification)
-- ✓ `lfit coef` with non-mean statistics (X1-X4)
-- ✓ Unicode characters in labels (Y1-Y5: German umlauts, Spanish accents, special chars)
-- ✓ Extreme `ciopacity` values (Z1-Z6: 0, 1, 99, 100, negative, >100)
-- ✓ Weighted statistics verification (AA1-AA3: aweights and fweights match manual collapse)
-
 ### Test harness improvement suggestion (deferred)
 ```stata
 // Current: run_test just checks pass/fail
@@ -105,14 +92,9 @@ return local by_vars "`by'"
 
 ## 7. Minor Issues
 
-### ~~Line 962 - Only shows last variable in varlist~~ ✓ FIXED
-The `list` command now iterates over all variables in `varlist` to show all outcome variables.
 
 ### Inefficient levelsof calls (deferred)
 Lines 346, 364, 367, 514, 545 call `levelsof` in different code paths. While these could theoretically reuse values from earlier `tab` calls, refactoring would require significant changes across multiple conditional branches. The performance impact is minimal.
-
-### ~~Version compatibility claims~~ ✓ FIXED
-Header now says `version 14.0`, matching the `.pkg` file requirement.
 
 ---
 
@@ -143,10 +125,6 @@ If a cell has only 1 observation, CI calculation will produce missing values. Co
 
 ## Conclusion
 
-This is a solid package with comprehensive testing (160+ tests, all passing). Key accomplishments:
-- ✓ Fixed high-priority bugs (baseline CI normalization, `controls()` undefined variable)
-- ✓ Fixed `list` command to show all outcome variables
-- ✓ Aligned version compatibility (now correctly states Stata 14+)
-- ✓ Added extensive test coverage for previously untested edge cases (gtools/ftools, long labels, baseline+xorder, Unicode, extreme ciopacity, weighted stats)
+This is a solid package with comprehensive testing (160+ tests, all passing). 
 
 The remaining issues are low-priority architectural improvements that would benefit maintainability but do not affect functionality.
