@@ -38,6 +38,7 @@ program define cellgraph
 		Name(str)               /// provide a graph name (just like the name option in other graph commands).
 		Stat(str)               /// the cell statistic to be used. If not specified "mean" is assumed. Other possibilities: min, max, sum, sd, var, p10, p25, p50, p75, p90, etc.
 		list                    /// list collapsed data at the end of the command.
+		SAVing(str)             /// save collapsed data to a file.
 		BASEline(str)           /// normalize series to this baseline observation (subtraction).
 		Title(str)              /// Title	
 		SUBTitle(passthru)      /// Subtitle
@@ -79,6 +80,9 @@ program define cellgraph
 		ftools                  /// use ftools for data processing.
 		/// === Category ordering ===
 		xorder(str asis)        /// order categories by mean of specified variable. Suboptions: descending, stat(statname).
+		/// === Axis label options ===
+		XLABel(str asis)        /// additional xlabel suboptions (e.g., ang(45), labsize(small))
+		YLABel(str asis)        /// additional ylabel suboptions (e.g., ang(0), labsize(small))
 		]
 
 	// Check Stata Version 
@@ -87,6 +91,26 @@ program define cellgraph
 	}
 	if `c(version)' < 15 {
 		di in red "Warning: Shaded confidence intervals may not work properly in Stata versions below 15"
+	}
+
+	// Strip leading comma from xlabel if present (allow both "ang(45)" and ", ang(45)")
+	local xlabel = strtrim(regexr(`"`xlabel'"', "^,", ""))
+
+	// Set default labsize only if user didn't specify one
+	local xlabel_labsize "labsize(medsmall)"
+	if strpos(`"`xlabel'"', "labsize") > 0 {
+		local xlabel_labsize ""
+	}
+	// Store user's xlabel content for later use (may contain numlist and/or suboptions)
+	local xlabel_user `"`xlabel'"'
+
+	// Strip leading comma from ylabel if present (allow both "ang(0)" and ", ang(0)")
+	local ylabel = strtrim(regexr(`"`ylabel'"', "^,", ""))
+
+	// Set default labsize only if user didn't specify one
+	local ylabel_labsize "labsize(medsmall)"
+	if strpos(`"`ylabel'"', "labsize") > 0 {
+		local ylabel_labsize ""
 	}
 
 	if "`colors'" == "" {
@@ -151,6 +175,21 @@ program define cellgraph
 		error 198
 	}
 	if "`cipattern'" == "" local cipattern "shaded"
+
+	// Parse saving option
+	local savefile ""
+	local savereplace ""
+	if `"`saving'"' != "" {
+		// Save varlist and stat before parsing (syntax will overwrite them)
+		local __save_varlist "`varlist'"
+		local __save_stat "`stat'"
+		local 0 `"`saving'"'
+		syntax anything(name=savefile) [, replace]
+		local savereplace "`replace'"
+		// Restore varlist and stat
+		local varlist "`__save_varlist'"
+		local stat "`__save_stat'"
+	}
 
 	// Parse xorder option
 	local xorder_var ""
@@ -891,6 +930,19 @@ program define cellgraph
 		local scheme scheme(s2mono)
 	}
 
+	// Build xlabel option: if xla has value labels use those, otherwise use user's numlist
+	if `"`xla'"' != "" {
+		// xla contains value labels, add user's suboptions after
+		local xlabel_opt xlabel(`xla', `xlabel_labsize' `xlabel_user')
+	}
+	else if `"`xlabel_user'"' != "" {
+		// No value labels, user provided xlabel content (numlist and/or suboptions)
+		local xlabel_opt xlabel(`xlabel_user', `xlabel_labsize')
+	}
+	else {
+		// Neither value labels nor user xlabel, just use default labsize
+		local xlabel_opt xlabel(, `xlabel_labsize')
+	}
 
 	twoway  ///
 		`graphs' ///
@@ -902,13 +954,19 @@ program define cellgraph
 		`legendlabel') ///
 		legend(note(`notes' , ///
 		size(vsmall) pos(4) ring(1) justification(right) xoffset(0))) ///
-		xtitle(`"`cattit'"') xlabel(`xla', labsize(medsmall)) `xscale_opt' ylabel(,labsize(medsmall)) ///
+		xtitle(`"`cattit'"') `xlabel_opt' `xscale_opt' ylabel(, `ylabel_labsize' `ylabel') ///
 		ysize(7.5) xsize(10) graphr(color(white)) `nameopt' `options' ///
 		`ytitle' `txt'
 
 	if "`list'"!="" {
 		list `by' *`v'*  , clean noo div //  sum(obs`v') noo div
 	}
+
+	// Save collapsed data if requested
+	if `"`savefile'"' != "" {
+		qui save `"`savefile'"', `savereplace'
+	}
+
 	restore
 
 end

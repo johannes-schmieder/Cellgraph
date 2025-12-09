@@ -627,6 +627,48 @@ run_test, name("R11: xorder with non-categorical by-var should error") ///
     cmd(cellgraph wage, by(age) xorder(wage) noci) expect_error
 
 // ============================================================
+// S. SAVING OPTION TESTS
+// ============================================================
+di _n as txt "=== S. Saving Option Tests ===" _n
+
+set trace off
+set tracedepth 2
+
+// Test basic saving
+run_test, name("S1: Basic saving option") ///
+    cmd(cellgraph wage, by(female) saving(test_save_S1.dta, replace) noci)
+
+// Verify saved file has correct structure
+capture {
+    preserve
+    use test_save_S1.dta, clear
+    assert _N == 2  // two groups: female=0, female=1
+    confirm variable female
+    confirm variable wage_mean
+    restore
+}
+if _rc == 0 {
+    di as result "PASS: S2: Saved file has correct structure"
+    global pass_count = $pass_count + 1
+}
+else {
+    di as error "FAIL: S2: Saved file structure verification"
+    global fail_count = $fail_count + 1
+}
+global test_count = $test_count + 1
+capture erase test_save_S1.dta
+
+// Test saving with two by-variables
+run_test, name("S3: Saving with two by-vars") ///
+    cmd(cellgraph wage, by(female industry) saving(test_save_S3.dta, replace) noci)
+capture erase test_save_S3.dta
+
+// Test saving with multiple statistics
+run_test, name("S4: Saving with multiple statistics") ///
+    cmd(cellgraph wage, by(female) stat(mean median) saving(test_save_S4.dta, replace) noci)
+capture erase test_save_S4.dta
+
+// ============================================================
 // SUMMARY
 // ============================================================
 di _n as txt "========================================"

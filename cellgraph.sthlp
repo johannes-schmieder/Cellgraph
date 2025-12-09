@@ -23,7 +23,8 @@ The data is collapsed to cell level, where each cell is defined by {it:byvar1} i
     {cmd:name(}{it:graphname}{cmd:)} {col 34}provide a graph name (just like the name option in other graph commands).
     {cmd:stat(}{it:statistics}{cmd:)} {col 34}the cell statistic to be used. If not specified "mean" is assumed. 
     {col 34}Other possibilities: min, max, sum, sd, var, p10, p25, p50, p75, p90, etc.
-    {cmd:list} {col 34}list collapsed data at the end of the command. 
+    {cmd:list} {col 34}list collapsed data at the end of the command.
+    {cmd:saving(}{it:filename}{cmd:, replace)}: {col 34}save collapsed data to a file.
     {cmd:baseline(}{it:string}{cmd:)}: {col 34}normalize series to this baseline observation (subtraction).
 
   {ul:Graph options}
@@ -82,6 +83,11 @@ The data is collapsed to cell level, where each cell is defined by {it:byvar1} i
     {col 34}  {cmd:descending} - sort in descending order (highest first)
     {col 34}  {cmd:stat(}{it:statname}{cmd:)} - use specified statistic instead of mean
     {col 34}Example: {cmd:xorder(wage, descending stat(median))}
+
+  {ul: Axis Label Options}
+    {cmd:xlabel(}{it:suboptions}{cmd:)}: {col 34}additional x-axis label suboptions (e.g., ang(45), labsize(small)).
+    {col 34}These are merged with the auto-generated category labels.
+    {cmd:ylabel(}{it:suboptions}{cmd:)}: {col 34}additional y-axis label suboptions (e.g., format(%9.2f), labsize(small)).
 
   {hline 70}
 
@@ -181,6 +187,26 @@ The data is collapsed to cell level, where each cell is defined by {it:byvar1} i
 {txt}{...}
 {space 8}{hline 80}
 {space 8}{it:({stata cellgraph_run ex8 using cellgraph.sthlp,  preserve:click to run})}
+
+{space 8}{hline 10} {it:Example 9 - Rotated X-axis Labels} {hline 10}
+{cmd}{...}
+{* example_start - ex9}{...}
+          sysuse nlsw88, clear
+          cellgraph wage, by(occupation) xorder(wage, descending) xlabel(ang(45))
+{* example_end}{...}
+{txt}{...}
+{space 8}{hline 80}
+{space 8}{it:({stata cellgraph_run ex9 using cellgraph.sthlp,  preserve:click to run})}
+
+{space 8}{hline 10} {it:Example 10 - Custom Axis Label Formatting} {hline 10}
+{cmd}{...}
+{* example_start - ex10}{...}
+          sysuse nlsw88, clear
+          cellgraph wage, by(occupation) xlabel(ang(45) labsize(small)) ylabel(format(%9.2f))
+{* example_end}{...}
+{txt}{...}
+{space 8}{hline 80}
+{space 8}{it:({stata cellgraph_run ex10 using cellgraph.sthlp,  preserve:click to run})}
 
 
 {marker author}
