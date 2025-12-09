@@ -180,15 +180,9 @@ program define cellgraph
 	local savefile ""
 	local savereplace ""
 	if `"`saving'"' != "" {
-		// Save varlist and stat before parsing (syntax will overwrite them)
-		local __save_varlist "`varlist'"
-		local __save_stat "`stat'"
-		local 0 `"`saving'"'
-		syntax anything(name=savefile) [, replace]
-		local savereplace "`replace'"
-		// Restore varlist and stat
-		local varlist "`__save_varlist'"
-		local stat "`__save_stat'"
+		__parse_saving `saving'
+		local savefile `"`s(savefile)'"'
+		local savereplace "`s(savereplace)'"
 	}
 
 	// Parse xorder option
@@ -203,16 +197,9 @@ program define cellgraph
 		// Check for suboptions
 		if `"`xorder_opts'"' != "" {
 			local xorder_opts = subinstr(`"`xorder_opts'"', ",", "", 1)
-			local 0 , `xorder_opts'
-			// Save varlist and stat before parsing (syntax will overwrite them)
-			local __save_varlist "`varlist'"
-			local __save_stat "`stat'"
-			syntax , [Descending Stat(str)]
-			if "`descending'" == "descending" local xorder_desc = 1
-			if "`stat'" != "" local xorder_stat "`stat'"
-			// Restore varlist and stat
-			local varlist "`__save_varlist'"
-			local stat "`__save_stat'"
+			__parse_xorder_opts , `xorder_opts'
+			local xorder_desc = `s(descending)'
+			if "`s(stat)'" != "" local xorder_stat "`s(stat)'"
 		}
 
 		// Confirm the xorder variable exists
@@ -255,6 +242,14 @@ program define cellgraph
 		replace `touse' = 0 if missing(`by')
 	}
 
+	// Set first_by_var for use in controls and other sections
+	if `number_of_by_vars'==1 {
+		local first_by_var `by'
+	}
+	else {
+		local first_by_var : word 1 of `by'
+	}
+
 	// Calculate number of stats
 	if "`stat'"=="" {
 		local stat mean
@@ -288,7 +283,6 @@ program define cellgraph
 
 		__locallist `colors', name(colors)
 
-		di `"`colors'"'
 	}
 
 
@@ -448,14 +442,11 @@ program define cellgraph
 	}
 	if `number_of_by_vars'==1  & `bin'!=0 {
 		replace `by' = `by'-mod(`by',`bin')+`bin'*0.5
-		local `first_by_var' `by'
 	}
 	if `number_of_by_vars'==2  & `bin'!=0 {
-		local first_by_var : word 1 of `by'
 		replace `first_by_var' = `first_by_var'-mod(`first_by_var',`bin')+`bin'*0.5
 	}
 	if `number_of_by_vars'==1 & `binscatter'!=0 {
-		local first_by_var : word 1 of `by'
 		tempvar miss dum binned
 		g `miss' = missing(`first_by_var')
 		bys `miss' (`first_by_var'): gen `dum' = int(`binscatter'*(_n-1)/_N)+1
@@ -540,8 +531,8 @@ program define cellgraph
 				qui sum `v'_`s' if `by'==`baseline_code'
 				replace `v'_`s' = `v'_`s' - r(mean)
 				if "`s'"=="mean" {
-					replace `v'hi = `v'_`s' - r(mean)
-					replace `v'lo = `v'_`s' - r(mean)
+					replace `v'hi = `v'hi - r(mean)
+					replace `v'lo = `v'lo - r(mean)
 				}
 			}
 		}
@@ -573,8 +564,8 @@ program define cellgraph
 					qui sum `v'_`s' if __dby2_`i'==1 & `1'==`baseline_code'
 					replace `v'_`s' = `v'_`s' - r(mean) if __dby2_`i'==1
 					if "`s'"=="mean" {
-						replace `v'hi = `v'_`s' - r(mean) if __dby2_`i'==1
-						replace `v'lo = `v'_`s' - r(mean) if __dby2_`i'==1
+						replace `v'hi = `v'hi - r(mean) if __dby2_`i'==1
+						replace `v'lo = `v'lo - r(mean) if __dby2_`i'==1
 					}
 				}
 				drop __dby2_*
@@ -969,6 +960,27 @@ program define cellgraph
 
 	restore
 
+end
+
+
+/*-------------------------------------------------------*/
+/* Helper to parse saving() option in isolated namespace  */
+/*-------------------------------------------------------*/
+cap program drop __parse_saving
+program define __parse_saving, sclass
+	syntax anything(name=savefile) [, replace]
+	sreturn local savefile `"`savefile'"'
+	sreturn local savereplace "`replace'"
+end
+
+/*-------------------------------------------------------*/
+/* Helper to parse xorder() suboptions in isolated namespace */
+/*-------------------------------------------------------*/
+cap program drop __parse_xorder_opts
+program define __parse_xorder_opts, sclass
+	syntax , [Descending Stat(str)]
+	sreturn local descending = ("`descending'" == "descending")
+	sreturn local stat "`stat'"
 end
 
 
