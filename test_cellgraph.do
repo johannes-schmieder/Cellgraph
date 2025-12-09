@@ -669,6 +669,192 @@ run_test, name("S4: Saving with multiple statistics") ///
 capture erase test_save_S4.dta
 
 // ============================================================
+// T. DATA VERIFICATION TESTS (compare saved data to manual collapse)
+// ============================================================
+di _n as txt "=== T. Data Verification Tests ===" _n
+
+// T1: Verify saved data matches manual collapse calculation
+di as txt "T1: Verifying saved data matches manual collapse..."
+tempfile t1_saved t1_manual
+
+// Run cellgraph with saving
+cellgraph wage, by(female) saving(`t1_saved', replace) noci
+
+// Manual collapse
+collapse (count) manual_obs=wage (sd) manual_sd=wage (mean) manual_mean=wage, by(female)
+gen manual_hi = manual_mean + 1.96 * manual_sd / sqrt(manual_obs)
+gen manual_lo = manual_mean - 1.96 * manual_sd / sqrt(manual_obs)
+save `t1_manual', replace
+
+// Load saved and merge
+use `t1_saved', clear
+merge 1:1 female using `t1_manual', nogen
+
+// Compare
+gen diff_mean = abs(wage_mean - manual_mean)
+gen diff_hi = abs(wagehi - manual_hi)
+gen diff_lo = abs(wagelo - manual_lo)
+gen diff_obs = abs(obswage - manual_obs)
+
+capture {
+    assert diff_mean < 1e-6 | missing(diff_mean)
+    assert diff_hi < 1e-6 | missing(diff_hi)
+    assert diff_lo < 1e-6 | missing(diff_lo)
+    assert diff_obs < 1e-6 | missing(diff_obs)
+}
+if _rc == 0 {
+    di as result "PASS: T1: Saved data matches manual collapse"
+    global pass_count = $pass_count + 1
+}
+else {
+    di as error "FAIL: T1: Saved data does not match manual collapse"
+    global fail_count = $fail_count + 1
+}
+global test_count = $test_count + 1
+
+// Reload test data
+use `panel_data', clear
+
+// T2: Verify CI formula (mean ± 1.96*sd/sqrt(n))
+di as txt "T2: Verifying CI formula..."
+tempfile t2_saved
+
+cellgraph wage, by(industry) saving(`t2_saved', replace)
+
+use `t2_saved', clear
+gen hi_check = wage_mean + 1.96 * sdwage / sqrt(obswage)
+gen lo_check = wage_mean - 1.96 * sdwage / sqrt(obswage)
+gen hi_diff = abs(wagehi - hi_check)
+gen lo_diff = abs(wagelo - lo_check)
+
+capture {
+    assert hi_diff < 1e-10 | missing(hi_diff)
+    assert lo_diff < 1e-10 | missing(lo_diff)
+}
+if _rc == 0 {
+    di as result "PASS: T2: CI formula verified (mean ± 1.96*sd/sqrt(n))"
+    global pass_count = $pass_count + 1
+}
+else {
+    di as error "FAIL: T2: CI formula mismatch"
+    global fail_count = $fail_count + 1
+}
+global test_count = $test_count + 1
+
+// Reload test data
+use `panel_data', clear
+
+// T3: Verify xorder sorting with descending option
+di as txt "T3: Verifying xorder descending sorting..."
+tempfile t3_saved t3_manual
+
+cellgraph wage, by(industry) xorder(wage, descending) saving(`t3_saved', replace) noci
+
+// Manual: collapse and sort descending by mean wage
+collapse (count) manual_obs=wage (sd) manual_sd=wage (mean) manual_mean=wage, by(industry)
+gsort -manual_mean
+gen rank = _n
+save `t3_manual', replace
+
+// Load saved (should be sorted by descending wage)
+use `t3_saved', clear
+gen rank = _n
+merge 1:1 rank using `t3_manual', nogen
+
+capture {
+    // Check that the means match when sorted by rank
+    gen diff_mean = abs(wage_mean - manual_mean)
+    assert diff_mean < 1e-6 | missing(diff_mean)
+}
+if _rc == 0 {
+    di as result "PASS: T3: xorder descending correctly sorts data"
+    global pass_count = $pass_count + 1
+}
+else {
+    di as error "FAIL: T3: xorder descending sorting mismatch"
+    global fail_count = $fail_count + 1
+}
+global test_count = $test_count + 1
+
+// Reload test data
+use `panel_data', clear
+
+// T4: Verify xorder with custom stat
+di as txt "T4: Verifying xorder with stat(median)..."
+tempfile t4_saved t4_manual
+
+cellgraph wage, by(industry) xorder(wage, stat(median)) saving(`t4_saved', replace) noci
+
+// Manual: collapse and sort by median wage
+collapse (count) manual_obs=wage (sd) manual_sd=wage (mean) manual_mean=wage (median) manual_median=wage, by(industry)
+sort manual_median
+gen rank = _n
+save `t4_manual', replace
+
+// Load saved (should be sorted by median wage)
+use `t4_saved', clear
+gen rank = _n
+merge 1:1 rank using `t4_manual', nogen
+
+capture {
+    gen diff_mean = abs(wage_mean - manual_mean)
+    assert diff_mean < 1e-6 | missing(diff_mean)
+}
+if _rc == 0 {
+    di as result "PASS: T4: xorder with stat(median) correctly sorts data"
+    global pass_count = $pass_count + 1
+}
+else {
+    di as error "FAIL: T4: xorder stat(median) sorting mismatch"
+    global fail_count = $fail_count + 1
+}
+global test_count = $test_count + 1
+
+// Reload test data
+use `panel_data', clear
+
+// T5: Verify string by-variable encoding preserves data
+di as txt "T5: Verifying string by-variable data integrity..."
+tempfile t5_saved t5_manual
+
+cellgraph wage, by(gender_str) saving(`t5_saved', replace) noci
+
+// Manual collapse (encode string first like cellgraph does)
+encode gender_str, gen(gender_enc)
+collapse (count) manual_obs=wage (sd) manual_sd=wage (mean) manual_mean=wage, by(gender_enc)
+sort manual_mean
+gen row = _n
+save `t5_manual', replace
+
+// Load saved - cellgraph encodes string to tempvar with value labels
+use `t5_saved', clear
+
+// Sort by mean and merge by row position (both have same groups, same sort order)
+sort wage_mean
+gen row = _n
+merge 1:1 row using `t5_manual', nogen
+
+capture {
+    gen diff_mean = abs(wage_mean - manual_mean)
+    assert diff_mean < 1e-6 | missing(diff_mean)
+    // Also verify we have correct number of groups (Male/Female = 2)
+    assert _N == 2
+}
+if _rc == 0 {
+    di as result "PASS: T5: String by-variable data integrity verified"
+    global pass_count = $pass_count + 1
+}
+else {
+    di as error "FAIL: T5: String by-variable data mismatch"
+    global fail_count = $fail_count + 1
+}
+global test_count = $test_count + 1
+
+// Reload test data for any subsequent tests
+use `panel_data', clear
+
+
+// ============================================================
 // SUMMARY
 // ============================================================
 di _n as txt "========================================"
