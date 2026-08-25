@@ -50,7 +50,7 @@ The data is collapsed to cell level, where each cell is defined by {it:byvar1} i
   {ul: Binning options}
     {cmd:binscatter(}{it:integer}{cmd:)}: {col 34}create a binned scatter plot with the specified number of bins.
     {cmd:bin(}{it:real}{cmd:)} {col 34}bin the data by the specified real number as bin width.
-    {cmd:lfit}: {col 34}add a linear fit line to the plot.
+    {cmd:lfit}: {col 34}add a linear fit line for each plotted statistic.
     {cmd:coef}: {col 34}display regression coefficients.
     {cmd:45deg}: {col 34}add a 45-degree reference line.
 
@@ -95,7 +95,15 @@ The data is collapsed to cell level, where each cell is defined by {it:byvar1} i
 {marker description}
 {title:Description}
 
-{p 4 4 2}Data is collapsed to cell level, where cells are defined by one or two categorical variables (byvar1 and byvar2) and cell means (or other statistics) of a third variabla ({it:varname}) are graphed.
+{p 4 4 2}Data is collapsed to cell level, where cells are defined by one or two categorical variables (byvar1 and byvar2) and cell means (or other statistics) of a third variable ({it:varname}) are graphed.
+
+{marker requirements}
+{title:Requirements}
+
+{p 4 4 2}{cmd:cellgraph} requires Stata 18 or newer. The base command has no
+user-written dependencies. Option {cmd:controls()} requires {help reghdfe};
+option {cmd:gtools} requires {help gtools}; and option {cmd:ftools} requires
+{help ftools}.
 
 {marker examples}
 {title:Examples}

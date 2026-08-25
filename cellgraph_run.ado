@@ -3,7 +3,7 @@
 *! This code for including examples from the help file into a do file is based on Robert Picard's geo2xy.ado file.
 program define cellgraph_run
 
-	version 17
+	version 18
 	
 	syntax anything(name=example_name id="example name") ///
 		using/			///

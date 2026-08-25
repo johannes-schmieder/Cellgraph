@@ -1,0 +1,25 @@
+name: Release metadata
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check policy and package manifest
+        if: github.ref_type != 'tag'
+        run: python3 scripts/check_release_metadata.py
+      - name: Check Stata release runner syntax
+        run: python3 scripts/run_stata_release_tests.py --help
+      - name: Check tagged release metadata
+        if: github.ref_type == 'tag'
+        run: python3 scripts/check_release_metadata.py --tag "$GITHUB_REF_NAME"

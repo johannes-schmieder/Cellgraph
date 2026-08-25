@@ -1,3 +1,5 @@
+*! cellgraph 0.5.0 25aug2026
+
 // Author: Johannes F. Schmieder
 // Department of Economics, Boston University
 // cellgraph.ado
@@ -29,7 +31,7 @@
 
 */
 
-version 14.0
+version 18.0
 capture program drop cellgraph
 program define cellgraph
 	syntax varlist [if] [in] [aweight fweight] , by(str) ///
@@ -84,14 +86,6 @@ program define cellgraph
 		XLABel(str asis)        /// additional xlabel suboptions (e.g., ang(45), labsize(small))
 		YLABel(str asis)        /// additional ylabel suboptions (e.g., ang(0), labsize(small))
 		]
-
-	// Check Stata Version 
-	if `c(version)' < 18 {
-		di "Warning: This version of cellgraph is mostly tested with Stata 18"
-	}
-	if `c(version)' < 15 {
-		di in red "Warning: Shaded confidence intervals may not work properly in Stata versions below 15"
-	}
 
 	// Strip leading comma from xlabel if present (allow both "ang(45)" and ", ang(45)")
 	local xlabel = strtrim(regexr(`"`xlabel'"', "^,", ""))
@@ -734,7 +728,7 @@ program define cellgraph
 					if "`lfit'"=="lfit" {
 						if `varcount'==1 & `sc'==1 local lfit_col maroon
 						else local lfit_col `col'
-						local graphs 	`graphs'	(lfit `v'_mean `by' , lpattern("shortdash") color(`lfit_col') )
+						local graphs 	`graphs'	(lfit `v'_`s' `by' , lpattern("shortdash") color(`lfit_col') )
 					}
 					if "`mcounts'"!=""{
 						local mlabel mlabel(obs`v') mlabcolor(black) mlabsize(vsmall) mlabposition(1)
@@ -917,10 +911,6 @@ program define cellgraph
 	// if `"`subtitle'"' != "" {
 	// 	local subtitle subtitle(`"`subtitle'"', margin(small) size(small) )
 	// }
-	if `c(version)' < 18 {
-		local scheme scheme(s2mono)
-	}
-
 	// Build xlabel option: if xla has value labels use those, otherwise use user's numlist
 	if `"`xla'"' != "" {
 		// xla contains value labels, add user's suboptions after

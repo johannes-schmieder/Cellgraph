@@ -186,4 +186,8 @@ cython_debug/
 
 # OSX
 .DS_Store
-CLAUDE.md
+
+# Local agent guidance
+AGENTS.md
+plans/
+.claude/
