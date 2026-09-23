@@ -16,14 +16,13 @@ collapsed data, and optional covariate adjustment.
 
 ### Stable version (SSC)
 
-`cellgraph` is not currently published on SSC. After its first SSC
-publication, the normal installation for ordinary users will be:
+Users can install `cellgraph` from SSC:
 
 ```stata
 ssc install cellgraph
 ```
 
-SSC will contain the current supported stable release, corresponding to an
+SSC contains the current supported stable release, corresponding to an
 immutable final GitHub release.
 
 ### Development version (`main`)
@@ -49,9 +48,6 @@ release tag:
 net install cellgraph, replace ///
     from("https://raw.githubusercontent.com/johannes-schmieder/cellgraph/vX.Y.Z/")
 ```
-
-Release candidates such as `v0.5.0-rc1` are for testing only and are never
-submitted to SSC.
 
 See [RELEASING.md](RELEASING.md) for the authoritative release process and
 [CHANGELOG.md](CHANGELOG.md) for user-facing changes.
